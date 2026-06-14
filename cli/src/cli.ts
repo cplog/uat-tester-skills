@@ -198,8 +198,8 @@ program
 
 function generateSpecFile(test: any, config: any): string {
   return `import { test, expect } from '@playwright/test';
-import { UATRunner } from '@your-org/uat-harness';
-import { loadConfig } from '@your-org/uat-harness/core/config';
+import { UATRunner } from '@uat-tester/cli';
+import { loadConfig } from '@uat-tester/cli/core/config';
 
 test('${test.name}', async ({ page }) => {
   const config = loadConfig('./uat-manifest.yml');

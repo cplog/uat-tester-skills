@@ -13,11 +13,14 @@ UAT_URL=https://preview.vercel.app npm run uat:preflight
 
 2. Start `npm run dev` locally, or use a deployed preview via `--url` / `UAT_URL`.
 
-3. Print scoped checklist:
+3. Print scoped checklist (or direct):
 
 ```bash
 npm run uat:tier-c
 npm run uat:tier-c -- --flows billing,settings --url https://preview.example.com
+# or direct:
+SKILL_DIR="$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)"
+bash "$SKILL_DIR/scripts/tier-c.sh" --flows billing,settings --url https://preview.example.com
 ```
 
 4. Walk each flow at the printed **Open for Tier C** URL.

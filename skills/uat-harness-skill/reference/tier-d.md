@@ -5,23 +5,27 @@ Runs `tiers.worker` commands. Use `--full` for `worker_optional`. Use `--service
 ## Steps
 
 1. Print `safety_notes` from manifest to the user.
-2. Confirm worker execution is allowed in this environment (not portal-only).
+2. Confirm background job execution is allowed in this environment.
 3. Execute:
 
 ```bash
-bash skills/uat-harness-skill/scripts/tier-d.sh
-bash skills/uat-harness-skill/scripts/tier-d.sh --full
-bash skills/uat-harness-skill/scripts/tier-d.sh --service daq
-# or: npm run uat:tier-d
+npm run uat:tier-d
+npm run uat:tier-d -- --full
+npm run uat:tier-d -- --service <service-id>
+# or direct:
+SKILL_DIR="$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)"
+bash "$SKILL_DIR/scripts/tier-d.sh"
+bash "$SKILL_DIR/scripts/tier-d.sh" --full
+bash "$SKILL_DIR/scripts/tier-d.sh" --service <service-id>
 ```
 
 4. Never run `destructive_commands` without explicit approval.
 
 ## When to use
 
-- Cron, scrape, queue workers, health pipelines
-- OpenCLI / browser automation lanes
+- Scheduled jobs, queue workers, sync pipelines
+- Separate APIs or services listed in `extra_services`
 
 ## Report
 
-Command output, scrape run IDs, health signal IDs, worker job IDs.
+Command output, job/run IDs, and any failing subsystem.

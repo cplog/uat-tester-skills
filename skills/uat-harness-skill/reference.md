@@ -21,7 +21,7 @@ Each project owns a root-level **`uat-manifest.yml`**. The generic skill never h
 | `tiers.smoke_url_flag` | Extra flags when `UAT_URL` / `--url` set (e.g. `-- --url`) |
 | `tiers.worker` | Tier D required worker commands |
 | `tiers.worker_optional` | Tier D with `--full` |
-| `tiers.extra_services[]` | Named services (`id`, `commands`) — e.g. DAQ, billing worker |
+| `tiers.extra_services[]` | Named services (`id`, `commands`) — e.g. billing worker, analytics API |
 | `alert_routes` | Map alert type → route (optional drill-down UAT) |
 | `destructive_commands` | Agent must confirm before running |
 | `safety_notes` | Shown at start of Tier D / any write test |
@@ -77,10 +77,10 @@ tiers:
 
 ## New project setup
 
-1. `npx skills add <repo> --skill uat-harness-skill -a cursor -y`
-2. `cp .agents/skills/uat-harness-skill/templates/manifest-template.yml ./uat-manifest.yml`
+1. `npx skills add cplog/uat-tester-skills --skill uat-harness-skill -a cursor -y`
+2. `SKILL_DIR="$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)"` then copy template or run agent `init`
 3. Fill `flows`, `tiers`, `destructive_commands`
-4. Add optional `uat:*` npm scripts (see SKILL.md Install section)
+4. Add `uat:*` npm scripts (see SKILL.md Install section)
 
 ## Runnable scripts (from consumer project root)
 
@@ -89,11 +89,11 @@ bash .agents/skills/uat-harness-skill/scripts/tier-a.sh
 bash .agents/skills/uat-harness-skill/scripts/tier-b.sh [--url https://…]
 ```
 
-When vendored in-repo: `skills/uat-harness-skill/scripts/…` also works.
+When vendored in this repo: `skills/uat-harness-skill/scripts/…` also works as `<skill-dir>`.
 
 ## Playwright / `uat test` (optional)
 
-When using `uat-harness-skill/` CLI package, also set:
+When using the `@uat-tester/cli` package, also set:
 
 ```yaml
 auth:
@@ -102,7 +102,3 @@ selector_strategy:
   primary: data-testid
   fallback_chain: [aria, text]
 ```
-
-## Control Tower overlay
-
-This repo’s manifest: **`uat-manifest.yml`** at project root (Tom Lee routes, verify-deployment, worker tiers, DAQ service). The skill stays generic; only the manifest is product-specific.

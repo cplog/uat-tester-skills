@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Install uat-harness-skill into the current consumer project (Cursor + .agents).
+# Install uat-harness-skill into the current consumer project via npx skills.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-SKILL_REPO="$(cd "$SKILL_DIR/../.." && pwd)"
+DEFAULT_REPO="$(cd "$SKILL_DIR/../.." && pwd)"
+REPO="${UAT_SKILL_REPO:-$DEFAULT_REPO}"
 
 _uat_find_project_root() {
   local dir="${PWD}"
   while [[ "$dir" != "/" ]]; do
     if [[ -f "$dir/uat-manifest.yml" ]] || [[ -f "$dir/package.json" ]]; then
-      # Prefer consumer repo over skill repo when cwd is uat-tester itself
-      if [[ "$dir" != "$SKILL_REPO" ]] || [[ -f "$dir/uat-manifest.yml" ]]; then
+      if [[ "$dir" != "$DEFAULT_REPO" ]] || [[ -f "$dir/uat-manifest.yml" ]]; then
         echo "$dir"
         return 0
       fi
@@ -22,19 +22,28 @@ _uat_find_project_root() {
 }
 
 PROJECT_ROOT="$(_uat_find_project_root)"
-CURSOR_DST="$PROJECT_ROOT/.cursor/skills/uat-harness-skill"
 
-mkdir -p "$CURSOR_DST"
-cp "$SKILL_DIR/SKILL.md" "$CURSOR_DST/SKILL.md"
-cp "$SKILL_DIR/reference.md" "$CURSOR_DST/reference.md"
-cp -R "$SKILL_DIR/reference" "$CURSOR_DST/reference" 2>/dev/null || true
-
-chmod +x "$SKILL_DIR/scripts/"*.sh 2>/dev/null || true
-
-if command -v npx >/dev/null 2>&1; then
-  npx skills add "$SKILL_REPO" --skill uat-harness-skill -a cursor -y 2>/dev/null || true
+if ! command -v npx >/dev/null 2>&1; then
+  echo "npx is required. Install Node.js, then re-run." >&2
+  exit 1
 fi
 
-echo "Skill repo: $SKILL_REPO"
-echo "Installed Cursor copy: $CURSOR_DST"
-echo "Project manifest: ${UAT_MANIFEST:-$PROJECT_ROOT/uat-manifest.yml}"
+echo "Installing uat-harness-skill from: $REPO"
+echo "Consumer project root: $PROJECT_ROOT"
+
+(cd "$PROJECT_ROOT" && npx skills add "$REPO" --skill uat-harness-skill -a cursor -y)
+
+SKILL_DST="$PROJECT_ROOT/.agents/skills/uat-harness-skill"
+if [[ ! -d "$SKILL_DST" ]]; then
+  echo "Install may have failed — .agents/skills/uat-harness-skill not found." >&2
+  echo "Run: npx skills list -a cursor" >&2
+  exit 1
+fi
+
+echo ""
+echo "Installed: $SKILL_DST"
+echo "Next steps (from $PROJECT_ROOT):"
+echo "  SKILL_DIR=\"\$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)\""
+echo "  cp \"\$SKILL_DIR/templates/manifest-template.yml\" ./uat-manifest.yml"
+echo "  # Add uat:* npm scripts — see README or SKILL.md Install section"
+echo "  # Reload Cursor"

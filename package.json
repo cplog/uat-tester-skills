@@ -1,8 +1,8 @@
 {
-  "name": "uat-tester",
+  "name": "uat-tester-skills",
   "version": "1.0.0",
   "private": true,
-  "description": "Manifest-driven UAT harness — agent skill + optional Playwright CLI",
+  "description": "Manifest-driven UAT harness skill (cplog/uat-tester-skills) + optional Playwright CLI",
   "scripts": {
     "skills:install": "bash skills/uat-harness-skill/scripts/install.sh",
     "cli:build": "npm run build --prefix cli",

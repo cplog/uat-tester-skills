@@ -279,7 +279,7 @@ export function buildRecommendations({ tiers, flows, extraServices, devServer, d
     recs.push({
       tier: 'D',
       command: 'npm run uat:tier-d',
-      reason: 'Worker/cron/scrape lane — confirm read-only DB unless user approves writes',
+      reason: 'Background job lane — confirm read-only DB unless user approves writes',
     });
   }
   for (const svc of extraServices) {

@@ -4,12 +4,14 @@ Run commands from `tiers.static` in the manifest.
 
 ## Steps
 
-1. Run `node scripts/context.mjs` if not already done this session.
+1. Run `node <skill-dir>/scripts/context.mjs` if not already done this session.
 2. Execute:
 
 ```bash
-bash skills/uat-harness-skill/scripts/tier-a.sh
-# or: npm run uat:tier-a
+npm run uat:tier-a
+# or direct:
+SKILL_DIR="$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)"
+bash "$SKILL_DIR/scripts/tier-a.sh"
 ```
 
 3. Both lint and build (or whatever manifest lists) must pass.
@@ -18,7 +20,7 @@ bash skills/uat-harness-skill/scripts/tier-a.sh
 ## When to use
 
 - UI copy, layout, styling only
-- No API contract or worker changes
+- No API contract or background job changes
 
 ## Report
 

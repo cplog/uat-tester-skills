@@ -14,11 +14,14 @@ UAT_URL=https://preview.vercel.app npm run uat:preflight
 
 2. Start local app if needed: `npm run dev` (default `http://localhost:3000` from manifest).
 
-3. Execute smoke:
+3. Execute smoke (or direct):
 
 ```bash
 npm run uat:tier-b
 npm run uat:tier-b -- --url https://preview.example.com
+# or direct:
+SKILL_DIR="$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)"
+bash "$SKILL_DIR/scripts/tier-b.sh" --url https://preview.example.com
 ```
 
 4. Verify DB connectivity, health endpoints, and smoke script output.

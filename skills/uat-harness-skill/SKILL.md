@@ -36,7 +36,7 @@ You MUST do these steps before proceeding:
 | `tier-a` | UI-only, lint/build gate | [reference/tier-a.md](reference/tier-a.md) |
 | `tier-b` | Deploy smoke, API health | [reference/tier-b.md](reference/tier-b.md) |
 | `tier-c` | Operator UI walkthrough | [reference/tier-c.md](reference/tier-c.md) |
-| `tier-d` | Worker, cron, background jobs | [reference/tier-d.md](reference/tier-d.md) |
+| `tier-d` | Background jobs, extra services | [reference/tier-d.md](reference/tier-d.md) |
 | `report` | Summarize session | [reference/report.md](reference/report.md) |
 
 Tier command lists always come from manifest `tiers.*` — not from this table.
@@ -65,7 +65,7 @@ npm run uat:preflight   # if wired in package.json
 | UI only on one surface | `tier-a` + `tier-c --flows <id>` |
 | Pre-deploy | `tier-a` + `tier-b` + `--url` if preview |
 | Full operator UAT | `tier-b` + `tier-c` (all flows) |
-| Worker/cron | `tier-d`; `--full` if optional scripts needed |
+| Worker / background | `tier-d`; `--full` if optional scripts needed |
 | Secondary API | `tier-d --service <extra_services.id>` |
 | Read-only DB | skip `destructive_commands` |
 
@@ -82,28 +82,27 @@ npm run uat:preflight   # if wired in package.json
 
 ## Install (`npx skills`)
 
-The skill package lives at `skills/uat-harness-skill/` in this repo. **`npx skills` copies the whole folder** (scripts, templates, reference) into `.agents/skills/` and links your agent (Cursor → `.cursor/skills/`).
+The skill package lives at `skills/uat-harness-skill/` in [cplog/uat-tester-skills](https://github.com/cplog/uat-tester-skills). **`npx skills` symlinks the whole folder** (scripts, templates, reference) into `.agents/skills/` and links Cursor → `.cursor/skills/`.
 
-### From local path (uat-tester repo)
-
-```bash
-cd /path/to/other-project
-npx skills add /Users/erictaicp/work/uat-tester --skill uat-harness-skill -a cursor -y
-```
-
-### From GitHub (after push)
+### Consumer install (recommended — project scope)
 
 ```bash
-cd /path/to/other-project
+cd /path/to/your-app
 npx skills add cplog/uat-tester-skills --skill uat-harness-skill -a cursor -y
 ```
 
-Use `--skill uat-harness-skill` (the Playwright CLI lives under `cli/` in uat-tester — not a separate skill).
+Use `--skill uat-harness-skill` (the Playwright CLI lives under `cli/` in this repo — not a separate skill).
 
-### Global install (all projects)
+**Project install (default)** — skill at `.agents/skills/uat-harness-skill/`. Use the npm script paths below.
+
+**Global install (`-g`)** — skill at `~/.cursor/skills/`. npm scripts pointing at `.agents/skills/` will not work unless you rewrite paths. Prefer project install.
+
+### Maintainer install (local clone)
 
 ```bash
-npx skills add cplog/uat-tester-skills --skill uat-harness-skill -a cursor -y -g
+cd /path/to/your-app
+export UAT_SKILL_REPO=/path/to/uat-tester-skills-clone
+npx skills add "$UAT_SKILL_REPO" --skill uat-harness-skill -a cursor -y
 ```
 
 ### After install — each project needs
@@ -111,11 +110,14 @@ npx skills add cplog/uat-tester-skills --skill uat-harness-skill -a cursor -y -g
 1. **`uat-manifest.yml`** at project root:
 
 ```bash
-cp .agents/skills/uat-harness-skill/templates/manifest-template.yml ./uat-manifest.yml
+SKILL_DIR="$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)"
+cp "$SKILL_DIR/templates/manifest-template.yml" ./uat-manifest.yml
 # edit flows, tiers, destructive_commands
 ```
 
-2. **Optional npm scripts** in `package.json` (paths work from any install location):
+Or run the agent **`init`** sub-command to scaffold from the codebase.
+
+2. **npm scripts** in `package.json` (required for `npm run uat:*`):
 
 ```json
 {
@@ -141,12 +143,10 @@ npx skills update uat-harness-skill -y
 npx skills list -a cursor
 ```
 
-### Standalone repo
-
-Canonical home: **`/Users/erictaicp/work/uat-tester`** (this skill package).
+### Repo layout
 
 ```
-uat-tester/
+uat-tester-skills/
 └── skills/
     └── uat-harness-skill/
         ├── SKILL.md
@@ -156,18 +156,16 @@ uat-tester/
         └── templates/
 ```
 
-Then: `npx skills add cplog/uat-tester-skills --skill uat-harness-skill -a cursor -y`
-
 ### Agent script paths
 
-Scripts ship inside the installed skill dir. Resolve with:
+Resolve `<skill-dir>` once per session:
 
 ```bash
-# skill dir (any install location)
-bash .agents/skills/uat-harness-skill/scripts/where-skill.sh
-node .agents/skills/uat-harness-skill/scripts/context.mjs
+SKILL_DIR="$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)"
+node "$SKILL_DIR/scripts/context.mjs"
+bash "$SKILL_DIR/scripts/tier-a.sh"
 ```
 
-Consumer repos install via `npx skills`; tier scripts resolve project root from `uat-manifest.yml` / `package.json` in cwd.
+When vendored inside a monorepo: `skills/uat-harness-skill/` also works as `<skill-dir>`.
 
-**Control Tower** installs from uat-tester: `npm run skills:install` in the control-tower repo.
+Consumer repos install via `npx skills`; tier scripts resolve project root from `uat-manifest.yml` / `package.json` in cwd.

@@ -13,7 +13,8 @@ After any tier session, write this report. Pull `project_id` from manifest via `
 - DB: read-only | write (user approved)
 
 ## Tiers completed
-- [ ] A  [ ] B  [ ] C  [ ] D  [ ] E (service: ___)
+- [ ] A (static)  [ ] B (smoke)  [ ] C (flows)  [ ] D (worker)
+- [ ] D — extra service: [service-id] (same tier as D, via `--service`)
 
 ## Commands run
 - (exact commands from manifest tiers)
@@ -36,3 +37,4 @@ After any tier session, write this report. Pull `project_id` from manifest via `
 - Failures must cite root cause.
 - Do not claim pass without command output or checklist evidence.
 - Suggest manifest updates when a new flow or script is missing.
+- **Extra services** are not a separate tier — record them under Tier D with the service id.
