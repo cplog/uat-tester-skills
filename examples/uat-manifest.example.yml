@@ -1,0 +1,62 @@
+# Copy to your project root as uat-manifest.yml and customize.
+# The generic UAT harness skill reads this file — not hardcoded routes.
+
+project_id: my-project
+platform: web
+framework: nextjs
+base_url: http://localhost:3000
+
+docs:
+  userflow: setup/docs/guides/USERFLOW.md
+
+locale:
+  default: en
+  toggle: false
+  viewport_min: 1280
+  viewport_max: 1440
+
+safety_notes:
+  - Confirm with the user before any destructive_commands
+  - Delete temp screenshots and scratch files after UAT
+
+tiers:
+  static:
+    - npm run lint
+    - npm run build
+  smoke:
+    - npm run smoke-test
+  smoke_url_flag: "--url"
+  worker: []
+  worker_optional: []
+  extra_services: []
+
+flows:
+  - id: home
+    name: Home
+    path: [/]
+    critical: true
+    checks:
+      - primary CTA visible
+      - navigation works
+  - id: settings
+    name: Settings
+    path: [/settings]
+    checks:
+      - form save persists
+
+alert_routes: {}
+
+destructive_commands:
+  - npm run db:reset
+
+environments:
+  local:
+    read_only: true
+    required_env: [DATABASE_URL]
+
+auth:
+  type: none
+
+selector_strategy:
+  primary: data-testid
+  fallback_chain: [aria, text]

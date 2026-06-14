@@ -1,0 +1,16 @@
+{
+  "name": "uat-tester",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Manifest-driven UAT harness — agent skill + optional Playwright CLI",
+  "scripts": {
+    "skills:install": "bash skills/uat-harness-skill/scripts/install.sh",
+    "cli:build": "npm run build --prefix cli",
+    "cli:install": "npm install --prefix cli"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cplog/uat-tester-skills.git"
+  },
+  "license": "MIT"
+}
