@@ -1,0 +1,74 @@
+=== uat-harness-skill recorded run — consumer-demo ===
+date: 2026-06-15T07:32:56Z
+repo: cplog/uat-tester-skills
+
+
+> consumer-demo@1.0.0 uat:preflight
+> node .agents/skills/uat-harness-skill/scripts/preflight.mjs --pretty
+
+# UAT preflight — consumer-demo
+
+**URL:** http://127.0.0.1:3000
+**Reachable:** yes
+**Root:** HTTP 200
+**Health:** HTTP 200 (http://127.0.0.1:3000/api/health)
+
+
+> consumer-demo@1.0.0 uat:tier-a
+> bash .agents/skills/uat-harness-skill/scripts/tier-a.sh
+
+=== Tier A — static (consumer-demo) ===
+→ npm run lint
+
+> consumer-demo@1.0.0 lint
+> node -e "process.exit(0)"
+
+→ npm run build
+
+> consumer-demo@1.0.0 build
+> node -e "process.exit(0)"
+
+Tier A passed.
+
+
+> consumer-demo@1.0.0 uat:tier-b
+> bash .agents/skills/uat-harness-skill/scripts/tier-b.sh --url http://127.0.0.1:3000
+
+=== Preflight (app must be reachable) ===
+# UAT preflight — consumer-demo
+
+**URL:** http://127.0.0.1:3000
+**Reachable:** yes
+**Root:** HTTP 200
+**Health:** HTTP 200 (http://127.0.0.1:3000/api/health)
+
+=== Tier B — smoke (consumer-demo) ===
+→ npm run smoke-test
+
+> consumer-demo@1.0.0 smoke-test
+> node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+Tier B passed.
+
+
+> consumer-demo@1.0.0 uat:tier-c
+> bash .agents/skills/uat-harness-skill/scripts/tier-c.sh
+
+=== Preflight (open this URL for manual UI) ===
+# UAT preflight — consumer-demo
+
+**URL:** http://127.0.0.1:3000
+**Reachable:** yes
+**Root:** HTTP 200
+**Health:** HTTP 200 (http://127.0.0.1:3000/api/health)
+
+Open for Tier C: http://127.0.0.1:3000
+
+=== Tier C — operator checklist (manual UI) ===
+Operator UAT — consumer-demo
+- [ ] Home (/) — primary CTA visible; navigation to settings works
+- [ ] Settings (/settings) — settings form renders; save button visible
+
+Mark items in your UAT report. See docs.userflow in manifest if present.
+
+=== all tiers completed successfully ===

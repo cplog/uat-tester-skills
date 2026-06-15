@@ -70,7 +70,7 @@ export async function runPreflight(cwd = process.cwd(), opts = {}) {
   const ctx = loadContext(cwd);
   const doc = ctx.doc || {};
   const baseUrl = (opts.url || doc.base_url || 'http://localhost:3000').replace(/\/$/, '');
-  const healthPath = opts.healthPath || doc.preflight?.health_path || '/api/tower/runtime';
+  const healthPath = opts.healthPath || doc.preflight?.health_path || '/';
   const healthUrl = `${baseUrl}${healthPath.startsWith('/') ? healthPath : `/${healthPath}`}`;
 
   const [rootProbe, healthProbe] = await Promise.all([

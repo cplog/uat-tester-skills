@@ -85,6 +85,7 @@ function parseMinimalManifest(text) {
     destructive_commands: [],
     safety_notes: [],
     docs: {},
+    preflight: {},
   };
   let section = null;
   let tierKey = null;
@@ -106,6 +107,7 @@ function parseMinimalManifest(text) {
     if (line.trim() === 'flows:') { section = 'flows'; inFlows = true; continue; }
     if (line.trim() === 'destructive_commands:') { section = 'destructive'; continue; }
     if (line.trim() === 'safety_notes:') { section = 'safety'; continue; }
+    if (line.trim() === 'preflight:') { section = 'preflight'; continue; }
     if (section === 'tiers') {
       if (line.trim() === 'extra_services:') { inExtra = true; tierKey = null; continue; }
       const tm = line.match(/^  (\w+):\s*$/);
@@ -124,6 +126,10 @@ function parseMinimalManifest(text) {
     if (section === 'safety') {
       const m = line.match(/^  - (.+)$/);
       if (m) doc.safety_notes.push(m[1].trim());
+    }
+    if (section === 'preflight') {
+      const hp = line.match(/^  health_path:\s*(.+)/);
+      if (hp) doc.preflight.health_path = hp[1].trim();
     }
     if (inFlows) {
       const im = line.match(/^  - id:\s*(.+)/);

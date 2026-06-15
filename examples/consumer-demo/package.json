@@ -1,0 +1,18 @@
+{
+  "name": "consumer-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Runnable example consumer for uat-harness-skill",
+  "scripts": {
+    "dev": "node server.mjs",
+    "lint": "node -e \"process.exit(0)\"",
+    "build": "node -e \"process.exit(0)\"",
+    "smoke-test": "node -e \"fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+    "uat:preflight": "node .agents/skills/uat-harness-skill/scripts/preflight.mjs --pretty",
+    "uat:signals": "node .agents/skills/uat-harness-skill/scripts/context-signals.mjs --pretty",
+    "uat:tier-a": "bash .agents/skills/uat-harness-skill/scripts/tier-a.sh",
+    "uat:tier-b": "bash .agents/skills/uat-harness-skill/scripts/tier-b.sh",
+    "uat:tier-c": "bash .agents/skills/uat-harness-skill/scripts/tier-c.sh",
+    "uat:tier-d": "bash .agents/skills/uat-harness-skill/scripts/tier-d.sh"
+  }
+}

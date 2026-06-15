@@ -2,5 +2,9 @@ node_modules/
 dist/
 .DS_Store
 *.log
+!examples/consumer-demo/uat-run.log
 .env
 .env.local
+examples/consumer-demo/.agents/
+examples/consumer-demo/.cursor/
+examples/consumer-demo/skills-lock.json

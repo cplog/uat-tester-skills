@@ -1,0 +1,62 @@
+# Example consumer manifest — matches examples/consumer-demo/server.mjs routes.
+
+project_id: consumer-demo
+platform: web
+framework: node
+base_url: http://127.0.0.1:3000
+
+preflight:
+  health_path: /api/health
+
+docs: {}
+
+locale:
+  default: en
+  toggle: false
+  viewport_min: 1280
+  viewport_max: 1440
+
+safety_notes:
+  - Demo app only — no destructive commands in this example
+
+tiers:
+  static:
+    - npm run lint
+    - npm run build
+  smoke:
+    - npm run smoke-test
+  smoke_url_flag: "--url"
+  worker: []
+  worker_optional: []
+  extra_services: []
+
+flows:
+  - id: home
+    name: Home
+    path: [/]
+    critical: true
+    checks:
+      - primary CTA visible
+      - navigation to settings works
+  - id: settings
+    name: Settings
+    path: [/settings]
+    checks:
+      - settings form renders
+      - save button visible
+
+alert_routes: {}
+
+destructive_commands: []
+
+environments:
+  local:
+    read_only: true
+    required_env: []
+
+auth:
+  type: none
+
+selector_strategy:
+  primary: data-testid
+  fallback_chain: [aria, text]

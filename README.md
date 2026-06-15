@@ -10,12 +10,14 @@ Repository: [github.com/cplog/uat-tester-skills](https://github.com/cplog/uat-te
 
 ## Install (consumer project)
 
-Project-scoped install (default). The skill lands in `.agents/skills/`; Cursor reads it via a symlink under `.cursor/skills/`.
+Project-scoped install (default). The skill lands in `.agents/skills/` — the shared path for Cursor, Codex, OpenCode, Amp, Gemini, GitHub Copilot, and other [npx skills](https://github.com/vercel-labs/skills)-supported agents. Cursor also reads via a symlink under `.cursor/skills/`.
 
 ```bash
 cd /path/to/your-app
 
-npx skills add cplog/uat-tester-skills --skill uat-harness-skill -a cursor -y
+# Auto-detects your agent(s); omit -a or pass one or more explicitly
+npx skills add cplog/uat-tester-skills --skill uat-harness-skill -y
+# e.g. npx skills add cplog/uat-tester-skills --skill uat-harness-skill -a cursor -a codex -y
 
 SKILL_DIR="$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)"
 cp "$SKILL_DIR/templates/manifest-template.yml" ./uat-manifest.yml
@@ -39,21 +41,34 @@ Add npm scripts to the consumer `package.json` (required for `npm run uat:*` bel
 }
 ```
 
-Reload Cursor after install.
+Reload your agent after install.
 
-If `where-skill.sh` fails, confirm install with `npx skills list -a cursor`.
+If `where-skill.sh` fails, confirm install with `npx skills list`.
 
-**Do not use `-g` (global install)** unless you also change npm script paths — global install puts the skill in `~/.cursor/skills/`, not `.agents/skills/`.
+**Do not use `-g` (global install)** unless you also change npm script paths — global install puts the skill in agent-specific global dirs, not `.agents/skills/`.
 
 ## Install (maintainers — local clone)
 
 ```bash
 cd /path/to/your-app
 export UAT_SKILL_REPO=/path/to/uat-tester-skills-clone
-npx skills add "$UAT_SKILL_REPO" --skill uat-harness-skill -a cursor -y
+# optional: export UAT_AGENTS="cursor codex"
+npx skills add "$UAT_SKILL_REPO" --skill uat-harness-skill -y
 ```
 
 Then follow the same manifest and npm script steps as above.
+
+## Example
+
+See [`examples/consumer-demo/`](examples/consumer-demo/) for a runnable dependency-free web app, its `uat-manifest.yml`, and `uat-run.log` (a recorded tier A/B/C run against the demo server).
+
+```bash
+cd examples/consumer-demo
+export UAT_SKILL_REPO=/path/to/uat-tester-skills-clone
+npx skills add "$UAT_SKILL_REPO" --skill uat-harness-skill -y
+npm run dev   # in another terminal
+npm run uat:preflight && npm run uat:tier-a && npm run uat:tier-b -- --url http://127.0.0.1:3000 && npm run uat:tier-c
+```
 
 ## Layout
 
@@ -61,7 +76,9 @@ Then follow the same manifest and npm script steps as above.
 uat-tester-skills/
 ├── skills/uat-harness-skill/   # Canonical agent skill (SKILL.md, scripts, reference)
 ├── cli/                        # Optional Playwright package (@uat-tester/cli)
-├── examples/                   # Sample manifest (not product-specific)
+├── examples/
+│   ├── consumer-demo/          # Runnable example + recorded UAT run
+│   └── uat-manifest.example.yml
 └── package.json                # Dev helpers for this repo
 ```
 

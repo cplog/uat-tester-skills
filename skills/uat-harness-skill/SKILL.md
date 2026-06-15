@@ -82,27 +82,30 @@ npm run uat:preflight   # if wired in package.json
 
 ## Install (`npx skills`)
 
-The skill package lives at `skills/uat-harness-skill/` in [cplog/uat-tester-skills](https://github.com/cplog/uat-tester-skills). **`npx skills` symlinks the whole folder** (scripts, templates, reference) into `.agents/skills/` and links Cursor → `.cursor/skills/`.
+The skill package lives at `skills/uat-harness-skill/` in [cplog/uat-tester-skills](https://github.com/cplog/uat-tester-skills). **`npx skills` symlinks the whole folder** (scripts, templates, reference) into `.agents/skills/` — the shared project path for Cursor, Codex, OpenCode, Amp, Gemini, GitHub Copilot, and other supported agents. Cursor also links via `.cursor/skills/`.
 
 ### Consumer install (recommended — project scope)
 
 ```bash
 cd /path/to/your-app
-npx skills add cplog/uat-tester-skills --skill uat-harness-skill -a cursor -y
+# Auto-detects your agent(s); omit -a or pass one or more explicitly
+npx skills add cplog/uat-tester-skills --skill uat-harness-skill -y
+# e.g. npx skills add cplog/uat-tester-skills --skill uat-harness-skill -a cursor -a codex -y
 ```
 
 Use `--skill uat-harness-skill` (the Playwright CLI lives under `cli/` in this repo — not a separate skill).
 
-**Project install (default)** — skill at `.agents/skills/uat-harness-skill/`. Use the npm script paths below.
+**Project install (default)** — skill at `.agents/skills/uat-harness-skill/`. npm script paths below work across supported agents.
 
-**Global install (`-g`)** — skill at `~/.cursor/skills/`. npm scripts pointing at `.agents/skills/` will not work unless you rewrite paths. Prefer project install.
+**Global install (`-g`)** — skill in agent-specific global dirs. npm scripts pointing at `.agents/skills/` will not work unless you rewrite paths. Prefer project install.
 
 ### Maintainer install (local clone)
 
 ```bash
 cd /path/to/your-app
 export UAT_SKILL_REPO=/path/to/uat-tester-skills-clone
-npx skills add "$UAT_SKILL_REPO" --skill uat-harness-skill -a cursor -y
+# optional: export UAT_AGENTS="cursor codex"
+npx skills add "$UAT_SKILL_REPO" --skill uat-harness-skill -y
 ```
 
 ### After install — each project needs
@@ -134,13 +137,17 @@ Or run the agent **`init`** sub-command to scaffold from the codebase.
 
 Tier scripts resolve **project root** from `uat-manifest.yml` / `package.json` in cwd — run them from the consumer repo root.
 
-3. **Reload Cursor** (or your agent) after install.
+3. **Reload your agent** after install.
+
+### Example consumer
+
+See `examples/consumer-demo/` in the skill repo: runnable demo server, `uat-manifest.yml`, and `uat-run.log` (recorded tier A/B/C output).
 
 ### Update skill
 
 ```bash
 npx skills update uat-harness-skill -y
-npx skills list -a cursor
+npx skills list
 ```
 
 ### Repo layout

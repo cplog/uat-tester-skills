@@ -77,7 +77,7 @@ tiers:
 
 ## New project setup
 
-1. `npx skills add cplog/uat-tester-skills --skill uat-harness-skill -a cursor -y`
+1. `npx skills add cplog/uat-tester-skills --skill uat-harness-skill -y`
 2. `SKILL_DIR="$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)"` then copy template or run agent `init`
 3. Fill `flows`, `tiers`, `destructive_commands`
 4. Add `uat:*` npm scripts (see SKILL.md Install section)

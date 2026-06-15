@@ -31,12 +31,20 @@ fi
 echo "Installing uat-harness-skill from: $REPO"
 echo "Consumer project root: $PROJECT_ROOT"
 
-(cd "$PROJECT_ROOT" && npx skills add "$REPO" --skill uat-harness-skill -a cursor -y)
+AGENTS_ARGS=()
+if [[ -n "${UAT_AGENTS:-}" ]]; then
+  for a in $UAT_AGENTS; do AGENTS_ARGS+=(-a "$a"); done
+  echo "Target agents: $UAT_AGENTS"
+else
+  echo "Target agents: auto-detect (set UAT_AGENTS=\"cursor codex\" to override)"
+fi
+
+(cd "$PROJECT_ROOT" && npx skills add "$REPO" --skill uat-harness-skill "${AGENTS_ARGS[@]}" -y)
 
 SKILL_DST="$PROJECT_ROOT/.agents/skills/uat-harness-skill"
 if [[ ! -d "$SKILL_DST" ]]; then
   echo "Install may have failed — .agents/skills/uat-harness-skill not found." >&2
-  echo "Run: npx skills list -a cursor" >&2
+  echo "Run: npx skills list" >&2
   exit 1
 fi
 
@@ -46,4 +54,4 @@ echo "Next steps (from $PROJECT_ROOT):"
 echo "  SKILL_DIR=\"\$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)\""
 echo "  cp \"\$SKILL_DIR/templates/manifest-template.yml\" ./uat-manifest.yml"
 echo "  # Add uat:* npm scripts — see README or SKILL.md Install section"
-echo "  # Reload Cursor"
+echo "  # Reload your agent after install"
