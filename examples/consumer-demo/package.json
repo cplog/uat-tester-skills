@@ -14,7 +14,10 @@
     "uat:tier-b": "bash .agents/skills/uat-harness-skill/scripts/tier-b.sh",
     "uat:tier-c": "bash .agents/skills/uat-harness-skill/scripts/tier-c.sh",
     "uat:tier-d": "bash .agents/skills/uat-harness-skill/scripts/tier-d.sh",
-    "uat:browser": "bash .agents/skills/uat-harness-skill/scripts/browser.sh"
+    "uat:browser": "bash .agents/skills/uat-harness-skill/scripts/browser.sh",
+    "uat:discover": "node .agents/skills/uat-harness-skill/scripts/discover.mjs --pretty",
+    "uat:audit": "node .agents/skills/uat-harness-skill/scripts/audit.mjs --pretty",
+    "uat:codegen": "node .agents/skills/uat-harness-skill/scripts/codegen.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.61.0"

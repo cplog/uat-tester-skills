@@ -29,6 +29,7 @@ Each project owns a root-level **`uat-manifest.yml`**. The generic skill never h
 | `docs` | Paths to USERFLOW, README, etc. |
 | `locale` | Default locale, toggle, viewport bounds |
 | `preflight.health_path` | HTTP path to probe (default `/`) — e.g. `/api/health` |
+| `linked_repos[]` | Sibling repos for discovery/audit (`id`, `path`, optional `base_url`) |
 
 ## Live app (Tier B & C)
 
@@ -79,8 +80,10 @@ tiers:
 
 1. `npx skills add cplog/uat-tester-skills --skill uat-harness-skill -y`
 2. `SKILL_DIR="$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)"` then copy template or run agent `init`
-3. Fill `flows`, `tiers`, `destructive_commands`
-4. Add `uat:*` npm scripts (see SKILL.md Install section)
+3. `node "$SKILL_DIR/scripts/discover.mjs" --draft` — review suggested flows
+4. Fill `flows`, `tiers`, `destructive_commands`
+5. `node "$SKILL_DIR/scripts/audit.mjs"` — fix coverage gaps
+6. Add `uat:*` npm scripts (see SKILL.md Install section)
 
 ## Runnable scripts (from consumer project root)
 

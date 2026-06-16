@@ -270,6 +270,22 @@ function main() {
     return;
   }
 
+  if (command === 'audit-doc') {
+    console.log(
+      JSON.stringify(
+        {
+          project_id: doc.project_id || null,
+          flows: doc.flows || [],
+          tiers: doc.tiers || {},
+          linked_repos: doc.linked_repos || [],
+        },
+        null,
+        2
+      )
+    );
+    return;
+  }
+
   if (command === 'meta') {
     const key = rest[0];
     if (key === 'project_id') console.log(doc.project_id || '');

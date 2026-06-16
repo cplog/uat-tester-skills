@@ -46,6 +46,12 @@ flows:
 
 alert_routes: {}
 
+# Optional: scan sibling repos during discover/audit
+linked_repos: []
+#  - id: backend-api
+#    path: ../backend-api
+#    base_url: http://127.0.0.1:8000
+
 destructive_commands:
   - npm run db:reset
 

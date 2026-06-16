@@ -12,16 +12,40 @@ Never silently overwrite without confirmation.
 
 ## Step 2: Explore the codebase
 
+Run discovery first (do not rely on manual grep alone):
+
+```bash
+SKILL_DIR="$(bash <skill-dir>/scripts/where-skill.sh)"
+node "$SKILL_DIR/scripts/discover.mjs" --pretty
+node "$SKILL_DIR/scripts/discover.mjs" --draft   # suggested flows + tiers
+```
+
+If manifest already exists:
+
+```bash
+node "$SKILL_DIR/scripts/audit.mjs" --pretty
+```
+
+Multi-repo (frontend + backend API in sibling folder):
+
+```bash
+UAT_DISCOVER_PATHS=../backend-api node "$SKILL_DIR/scripts/discover.mjs" --pretty
+```
+
+Or add `linked_repos` to the manifest (see [../reference.md](../reference.md)).
+
 Discover what you can before asking:
 
 | Signal | Maps to manifest |
 |--------|------------------|
-| `app/**/page.tsx`, `pages/`, `routes/` | `flows[].path` |
-| `package.json` scripts (`lint`, `build`, `test`, `smoke`) | `tiers.static`, `tiers.smoke` |
-| `scripts/cron*`, `worker*`, `docker-compose` services | `tiers.worker`, `extra_services` |
+| `discover.mjs` UI routes | `flows[].path`, `checks` |
+| `discover.mjs` API routes | `flows[]` or `tiers.smoke` probes |
+| `package.json` scripts | `tiers.static`, `tiers.smoke`, `tiers.worker` |
+| FastAPI `@app.get`, OpenAPI | API flows / smoke |
+| `scripts/cron*`, `worker*`, `docker-compose` | `tiers.worker`, `extra_services` |
 | `setup/docs/guides/USERFLOW.md` or similar | `docs.userflow`, flow `checks` |
 | `.env.local.example` | `environments`, `safety_notes` |
-| Destructive npm scripts (`reset`, `clear-data`, `seed`) | `destructive_commands` |
+| Destructive npm scripts | `destructive_commands` |
 
 Note framework (`nextjs`, `vite`, etc.) for `framework` field.
 
@@ -72,6 +96,7 @@ Short operator-facing summary (not duplicated checklist):
 
 Suggest exact commands:
 
+- `node "$SKILL_DIR/scripts/audit.mjs"` — verify coverage after init
 - `npm run uat:tier-a` — after UI-only change
 - `npm run uat:tier-b -- --url <preview>` — before deploy
 - `npm run uat:tier-c -- --flows <ids>` — operator walkthrough

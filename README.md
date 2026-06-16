@@ -37,10 +37,30 @@ Add npm scripts to the consumer `package.json` (required for `npm run uat:*` bel
     "uat:tier-b": "bash .agents/skills/uat-harness-skill/scripts/tier-b.sh",
     "uat:tier-c": "bash .agents/skills/uat-harness-skill/scripts/tier-c.sh",
     "uat:tier-d": "bash .agents/skills/uat-harness-skill/scripts/tier-d.sh",
-    "uat:browser": "bash .agents/skills/uat-harness-skill/scripts/browser.sh"
+    "uat:browser": "bash .agents/skills/uat-harness-skill/scripts/browser.sh",
+    "uat:discover": "node .agents/skills/uat-harness-skill/scripts/discover.mjs --pretty",
+    "uat:audit": "node .agents/skills/uat-harness-skill/scripts/audit.mjs --pretty",
+    "uat:codegen": "node .agents/skills/uat-harness-skill/scripts/codegen.mjs --force"
   }
 }
 ```
+
+Discovery and coverage audit (after `init` or when refreshing manifest):
+
+```bash
+npm run uat:discover          # routes + API endpoints in repo
+npm run uat:audit             # gaps vs uat-manifest.yml flows[]
+node .agents/skills/uat-harness-skill/scripts/discover.mjs --draft   # suggested YAML
+npm run uat:codegen           # Playwright skeleton → .uat/generated/flows.spec.ts
+```
+
+Multi-repo backend (sibling API repo):
+
+```bash
+UAT_DISCOVER_PATHS=../backend-api npm run uat:discover
+```
+
+Or add `linked_repos` in `uat-manifest.yml` (see skill `reference.md`).
 
 Reload your agent after install.
 
