@@ -19,7 +19,7 @@ export class TestGenerator {
   private async generateTest(flow: DiscoveredFlow): Promise<GeneratedTest> {
     const steps: TestStep[] = [];
 
-    if (this.config.auth.type !== 'none') {
+    if (this.config.auth && this.config.auth.type !== 'none') {
       steps.push(this.generateAuthStep());
     }
 
@@ -53,7 +53,7 @@ export class TestGenerator {
     return {
       action: 'authenticate',
       target: { type: 'data-testid', value: 'login-form', weight: 100 },
-      value: JSON.stringify(this.config.auth.test_credentials),
+      value: JSON.stringify(this.config.auth?.test_credentials || {}),
       assertions: [
         { type: 'url', expected: '/dashboard' },
         { type: 'element', selector: '[data-testid="user-menu"]', state: 'visible' },

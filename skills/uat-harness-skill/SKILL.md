@@ -26,7 +26,8 @@ You MUST do these steps before proceeding:
 1. **Destructive commands** — only run manifest `destructive_commands` after explicit user approval.
 2. **Safety** — print `safety_notes` before Tier D or any write test.
 3. **Secrets** — never log env files, API keys, or proxy credentials.
-4. **Cleanup** — delete temp screenshots and scratch files after UAT.
+4. **Tier C automation** — when CDP browser is up (`npm run uat:browser`), `tier-c.sh` emits subagent dispatch instructions; main agent must run a subagent to verify flows. See [reference/tier-c.md](reference/tier-c.md). Manual fallback: `--manual` or no CDP.
+5. **Cleanup** — delete temp screenshots and scratch files after UAT.
 
 ## Commands
 
@@ -35,7 +36,7 @@ You MUST do these steps before proceeding:
 | `init` | No manifest or refresh project UAT config | [reference/init.md](reference/init.md) |
 | `tier-a` | UI-only, lint/build gate | [reference/tier-a.md](reference/tier-a.md) |
 | `tier-b` | Deploy smoke, API health | [reference/tier-b.md](reference/tier-b.md) |
-| `tier-c` | Operator UI walkthrough | [reference/tier-c.md](reference/tier-c.md) |
+| `tier-c` | Operator UI walkthrough (CDP subagent or manual) | [reference/tier-c.md](reference/tier-c.md) |
 | `tier-d` | Background jobs, extra services | [reference/tier-d.md](reference/tier-d.md) |
 | `report` | Summarize session | [reference/report.md](reference/report.md) |
 
@@ -56,7 +57,8 @@ npm run uat:preflight   # if wired in package.json
 1. **No sub-command**: run `context-signals.mjs --pretty`; recommend 2–3 picks with reasons; wait for user confirmation before Tier D or destructive scripts.
 2. **Sub-command match**: load `reference/<command>.md` and follow it.
 3. **Intent without command name** (e.g. "smoke test the preview") → map to `tier-b`; "walk through billing" → `tier-c` with `--flows billing`.
-4. **`NO_MANIFEST` from context.mjs**: run `init` flow before any tier.
+4. **`tier-c` with CDP available** — after `tier-c.sh` prints subagent dispatch instructions, launch a subagent (Task tool) to execute the walkthrough; do not skip automation and only print the checklist.
+5. **`NO_MANIFEST` from context.mjs**: run `init` flow before any tier.
 
 ## Scope adjustment
 
@@ -130,7 +132,8 @@ Or run the agent **`init`** sub-command to scaffold from the codebase.
     "uat:tier-a": "bash .agents/skills/uat-harness-skill/scripts/tier-a.sh",
     "uat:tier-b": "bash .agents/skills/uat-harness-skill/scripts/tier-b.sh",
     "uat:tier-c": "bash .agents/skills/uat-harness-skill/scripts/tier-c.sh",
-    "uat:tier-d": "bash .agents/skills/uat-harness-skill/scripts/tier-d.sh"
+    "uat:tier-d": "bash .agents/skills/uat-harness-skill/scripts/tier-d.sh",
+    "uat:browser": "bash .agents/skills/uat-harness-skill/scripts/browser.sh"
   }
 }
 ```

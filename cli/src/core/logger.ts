@@ -1,4 +1,4 @@
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 

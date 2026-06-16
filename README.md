@@ -36,7 +36,8 @@ Add npm scripts to the consumer `package.json` (required for `npm run uat:*` bel
     "uat:tier-a": "bash .agents/skills/uat-harness-skill/scripts/tier-a.sh",
     "uat:tier-b": "bash .agents/skills/uat-harness-skill/scripts/tier-b.sh",
     "uat:tier-c": "bash .agents/skills/uat-harness-skill/scripts/tier-c.sh",
-    "uat:tier-d": "bash .agents/skills/uat-harness-skill/scripts/tier-d.sh"
+    "uat:tier-d": "bash .agents/skills/uat-harness-skill/scripts/tier-d.sh",
+    "uat:browser": "bash .agents/skills/uat-harness-skill/scripts/browser.sh"
   }
 }
 ```
@@ -99,7 +100,7 @@ npm run uat:signals
 |------|--------------|---------|
 | A | `tiers.static` | Lint / build — no running app |
 | B | `tiers.smoke` | Live app smoke / health |
-| C | `flows[]` | Operator UI checklist |
+| C | `flows[]` | Operator UI checklist (CDP automation or manual) |
 | D | `tiers.worker` | Background jobs (optional) |
 
 ## Update skill

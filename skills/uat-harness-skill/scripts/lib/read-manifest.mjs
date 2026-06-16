@@ -174,14 +174,7 @@ function getCommands(doc, tier, serviceId) {
 }
 
 function printChecklist(doc, opts) {
-  let flows = doc.flows || [];
-  if (opts.critical) {
-    flows = flows.filter((f) => f.critical);
-  }
-  if (opts.flows) {
-    const ids = new Set(opts.flows.split(',').map((s) => s.trim()));
-    flows = flows.filter((f) => ids.has(f.id));
-  }
+  const flows = getFilteredFlows(doc, opts);
 
   console.log(`Operator UAT — ${doc.project_id || 'project'}`);
   for (const flow of flows) {
@@ -199,6 +192,34 @@ function printChecklist(doc, opts) {
     const max = locale.viewport_max || locale.viewport_min;
     console.log(`- [ ] No horizontal scroll at ${locale.viewport_min}–${max}px`);
   }
+}
+
+function getFilteredFlows(doc, opts) {
+  let flows = doc.flows || [];
+  if (opts.critical) {
+    flows = flows.filter((f) => f.critical);
+  }
+  if (opts.flows) {
+    const ids = new Set(opts.flows.split(',').map((s) => s.trim()));
+    flows = flows.filter((f) => ids.has(f.id));
+  }
+  return flows;
+}
+
+function printFlowsJson(doc, opts) {
+  const flows = getFilteredFlows(doc, opts);
+  console.log(
+    JSON.stringify(
+      {
+        project_id: doc.project_id || null,
+        base_url: doc.base_url || null,
+        locale: doc.locale || {},
+        flows,
+      },
+      null,
+      2
+    )
+  );
 }
 
 function main() {
@@ -236,6 +257,16 @@ function main() {
       if (rest[i] === '--critical') opts.critical = true;
     }
     printChecklist(doc, opts);
+    return;
+  }
+
+  if (command === 'flows-json') {
+    const opts = { flows: null, critical: false };
+    for (let i = 0; i < rest.length; i++) {
+      if (rest[i] === '--flows') opts.flows = rest[++i];
+      if (rest[i] === '--critical') opts.critical = true;
+    }
+    printFlowsJson(doc, opts);
     return;
   }
 

@@ -55,13 +55,14 @@ export class UATRunner {
   }
 
   async authenticate(): Promise<void> {
-    if (this.config.auth.type === 'none' || !this.config.auth.login_flow) {
+    const auth = this.config.auth;
+    if (!auth || auth.type === 'none' || !auth.login_flow) {
       return;
     }
 
-    this.logger.info(`Authenticating via ${this.config.auth.type}`);
+    this.logger.info(`Authenticating via ${auth.type}`);
 
-    const { test_credentials, login_flow, type } = this.config.auth;
+    const { test_credentials, login_flow, type } = auth;
     if (!test_credentials) {
       throw new Error('Test credentials required for authentication');
     }

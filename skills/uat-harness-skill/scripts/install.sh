@@ -39,7 +39,7 @@ else
   echo "Target agents: auto-detect (set UAT_AGENTS=\"cursor codex\" to override)"
 fi
 
-(cd "$PROJECT_ROOT" && npx skills add "$REPO" --skill uat-harness-skill "${AGENTS_ARGS[@]}" -y)
+(cd "$PROJECT_ROOT" && npx skills add "$REPO" --skill uat-harness-skill "${AGENTS_ARGS[@]:-}" -y)
 
 SKILL_DST="$PROJECT_ROOT/.agents/skills/uat-harness-skill"
 if [[ ! -d "$SKILL_DST" ]]; then

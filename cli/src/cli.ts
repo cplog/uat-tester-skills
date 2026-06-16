@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import * as chalk from 'chalk';
-import * as ora from 'ora';
+import chalk from 'chalk';
+import ora from 'ora';
 import { loadConfig, validateConfig, findManifests } from './core/config';
 import { Logger } from './core/logger';
 import { UATRunner } from './core/runner';

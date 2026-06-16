@@ -1,6 +1,8 @@
 import { Page, Locator } from '@playwright/test';
 import { SelectorChain, Route, ComponentNode } from '../core/types';
 
+export { SelectorChain, Route, ComponentNode };
+
 export interface PlatformAdapter {
   readonly framework: string;
 
