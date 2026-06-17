@@ -12,6 +12,7 @@ import https from 'node:https';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadContext } from './context.mjs';
+import { printBanner } from './lib/banner.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -110,6 +111,7 @@ async function cli() {
 
   const pretty = process.argv.includes('--pretty');
   if (pretty) {
+    printBanner('compact');
     const lines = [
       `# UAT preflight — ${result.projectId || 'project'}`,
       '',

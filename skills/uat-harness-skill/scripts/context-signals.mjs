@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { loadContext } from './context.mjs';
 import { runPreflight } from './preflight.mjs';
+import { printBanner } from './lib/banner.mjs';
 
 const COMMON_DEV_PORTS = [3000, 4321, 5173, 5174, 8080, 8100, 8200];
 
@@ -351,6 +352,7 @@ async function cli() {
   const signals = await gatherSignals(process.cwd());
 
   if (pretty) {
+    printBanner('compact');
     const lines = [
       `# UAT signals — ${signals.setup.projectId || 'project'}`,
       '',

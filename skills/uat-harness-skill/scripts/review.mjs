@@ -6,6 +6,7 @@
  *   node review.mjs [--json|--pretty] [--base ref] [projectRoot]
  */
 import { gatherSignals } from './context-signals.mjs';
+import { printBanner } from './lib/banner.mjs';
 
 function parseArgs(argv) {
   const out = { json: false, pretty: true, base: null, root: process.cwd() };
@@ -127,6 +128,7 @@ export function buildReviewReport(signals) {
 }
 
 function printPretty(report) {
+  printBanner('compact');
   console.log(`# UAT review — ${report.project_id || 'project'}`);
   if (report.base) console.log(`base: ${report.base}`);
   console.log('');

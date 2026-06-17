@@ -1,4 +1,15 @@
-# uat-tester-skills
+```
+    ██╗   ██╗ █████╗ ████████╗
+    ██║   ██║██╔══██╗╚══██╔══╝
+    ██║   ██║███████║   ██║
+    ██║   ██║██╔══██║   ██║
+    ╚██████╔╝██║  ██║   ██║
+     ╚═════╝ ╚═╝  ╚═╝   ╚═╝
+  ╭─ harness ────────────────────────────────────────────╮
+  │  [ A ] static   [ B ] smoke   [ C ] flows   [ D ]   │
+  │  manifest-first · operator acceptance · agents      │
+  ╰─────────────────────────────────────────────────────╯
+```
 
 Manifest-driven UAT harness for AI coding agents and optional Playwright CLI.
 
@@ -16,8 +27,9 @@ Project-scoped install (default). The skill lands in `.agents/skills/` — the s
 cd /path/to/your-app
 
 # Auto-detects your agent(s); omit -a or pass one or more explicitly
-npx skills add cplog/uat-tester-skills --skill uat-harness-skill -y
-# e.g. npx skills add cplog/uat-tester-skills --skill uat-harness-skill -a cursor -a codex -y
+npx skills@latest add cplog/uat-tester-skills --skill uat-harness-skill -y
+# List skills in the repo first:
+# npx skills@latest add cplog/uat-tester-skills --list
 
 SKILL_DIR="$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)"
 cp "$SKILL_DIR/templates/manifest-template.yml" ./uat-manifest.yml
@@ -65,6 +77,8 @@ UAT_DISCOVER_PATHS=../backend-api npm run uat:discover
 ```
 
 Or add `linked_repos` in `uat-manifest.yml` (see skill `reference.md`).
+
+**Banner:** `npm run uat:preflight` and other `--pretty` scripts print the UAT harness banner. Suppress with `UAT_NO_BANNER=1`. The ASCII logo from `npx skills` itself is controlled by [vercel-labs/skills](https://github.com/vercel-labs/skills), not this repo.
 
 Reload your agent after install.
 

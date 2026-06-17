@@ -10,6 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { discoverAll, draftSuggestions } from './discover.mjs';
+import { printBanner } from './lib/banner.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -183,6 +184,7 @@ function buildFindings(discovery, manifestDoc) {
 }
 
 function printPretty(report) {
+  printBanner('compact');
   console.log(`# UAT audit — ${report.project_id || 'project'}`);
   console.log('');
   console.log('Coverage gaps only. Code quality / security / perf -> normal review.');

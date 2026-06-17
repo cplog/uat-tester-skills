@@ -3,6 +3,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/banner.sh
+source "$SCRIPT_DIR/lib/banner.sh"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DEFAULT_REPO="$(cd "$SKILL_DIR/../.." && pwd)"
 REPO="${UAT_SKILL_REPO:-$DEFAULT_REPO}"
@@ -28,6 +30,7 @@ if ! command -v npx >/dev/null 2>&1; then
   exit 1
 fi
 
+uat_banner
 echo "Installing uat-harness-skill from: $REPO"
 echo "Consumer project root: $PROJECT_ROOT"
 
