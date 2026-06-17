@@ -15,9 +15,11 @@ Schema: [reference.md](reference.md)
 
 You MUST do these steps before proceeding:
 
-1. Run `node <skill-dir>/scripts/context.mjs` once per session (`<skill-dir>` = `.agents/skills/uat-harness-skill` after `npx skills add`, or `skills/uat-harness-skill` when vendored). Skip if you already have its output. `NO_MANIFEST` → follow [reference/init.md](reference/init.md).
-2. If the user did **not** name a sub-command, run `node <skill-dir>/scripts/context-signals.mjs --pretty` and lead with **2–3 recommendations**.
-3. If the user invoked a sub-command (`setup`, `init`, `review`, `audit`, `tier-a`, `tier-b`, `tier-c`, `tier-d`, `report`), read `reference/<command>.md` next. Non-optional.
+1. Run `node <skill-dir>/scripts/context.mjs` once per session.  
+   (`<skill-dir>` is `.agents/skills/uat-harness-skill` after install, or `skills/uat-harness-skill` when vendored.)  
+   If output is `NO_MANIFEST`, run `setup` (preferred) or follow [reference/init.md](reference/init.md).
+2. If the user did **not** name a sub-command, run `node <skill-dir>/scripts/context-signals.mjs --pretty` and give **2–3 recommendations**.
+3. If the user named a sub-command (`setup`, `init`, `review`, `audit`, `tier-a`, `tier-b`, `tier-c`, `tier-d`, `report`), read `reference/<command>.md` before acting.
 4. User scope (changed files, flow ids, tiers, URL, read-only DB) **narrows** tiers and `flows[]` subset.
 
 ## Before you start
@@ -48,12 +50,12 @@ Tier command lists always come from manifest `tiers.*` — not from this table.
 ### Runnable scripts
 
 ```bash
+node <skill-dir>/scripts/setup.mjs [--yes] [--dry-run] [--env local|preview|custom] [--url https://...]
 bash <skill-dir>/scripts/tier-a.sh
 bash <skill-dir>/scripts/tier-b.sh [--url https://…]
 bash <skill-dir>/scripts/tier-c.sh [--flows id1,id2] [--url https://…]
 bash <skill-dir>/scripts/tier-d.sh [--full] [--service <id>]
 node <skill-dir>/scripts/discover.mjs [--pretty|--json|--draft]
-node <skill-dir>/scripts/setup.mjs [--yes] [--dry-run] [--env local|preview|custom] [--url https://...]
 node <skill-dir>/scripts/review.mjs [--pretty|--json] [--base ref]
 node <skill-dir>/scripts/audit.mjs [--pretty|--json]
 node <skill-dir>/scripts/codegen.mjs [--force]
@@ -88,7 +90,7 @@ npm run uat:preflight   # if wired in package.json
 |------------|-------------|
 | `PRODUCT.md` + `DESIGN.md` | `uat-manifest.yml` + optional `UAT.md` |
 | `context.mjs` boot | `scripts/context.mjs` boot |
-| `reference/<command>.md` | `reference/init.md`, `tier-*.md`, `report.md` |
+| `reference/<command>.md` | `reference/setup.md`, `init.md`, `review.md`, `audit.md`, `tier-*.md`, `report.md` |
 | `npx impeccable detect` (deterministic) | `tier-*.sh` + `read-manifest.mjs` (deterministic) |
 | `npx impeccable skills install` | `npm run skills:install` |
 | `context-signals.mjs` (git → suggest commands) | `scripts/context-signals.mjs` |
@@ -97,13 +99,13 @@ npm run uat:preflight   # if wired in package.json
 
 The skill package lives at `skills/uat-harness-skill/` in [cplog/uat-tester-skills](https://github.com/cplog/uat-tester-skills). **`npx skills` symlinks the whole folder** (scripts, templates, reference) into `.agents/skills/` — the shared project path for Cursor, Codex, OpenCode, Amp, Gemini, GitHub Copilot, and other supported agents. Cursor also links via `.cursor/skills/`.
 
-### Consumer install (recommended — project scope)
+### Consumer install (recommended)
 
 ```bash
 cd /path/to/your-app
 # Auto-detects your agent(s); omit -a or pass one or more explicitly
-npx skills add cplog/uat-tester-skills --skill uat-harness-skill -y
-# e.g. npx skills add cplog/uat-tester-skills --skill uat-harness-skill -a cursor -a codex -y
+npx skills@latest add cplog/uat-tester-skills --skill uat-harness-skill -y
+# e.g. npx skills@latest add cplog/uat-tester-skills --skill uat-harness-skill -a cursor -a codex -y
 ```
 
 Use `--skill uat-harness-skill` (the Playwright CLI lives under `cli/` in this repo — not a separate skill).
@@ -118,28 +120,20 @@ Use `--skill uat-harness-skill` (the Playwright CLI lives under `cli/` in this r
 cd /path/to/your-app
 export UAT_SKILL_REPO=/path/to/uat-tester-skills-clone
 # optional: export UAT_AGENTS="cursor codex"
-npx skills add "$UAT_SKILL_REPO" --skill uat-harness-skill -y
+npx skills@latest add "$UAT_SKILL_REPO" --skill uat-harness-skill -y
 ```
 
-### After install — each project needs
+### After install — quick path
 
-1. **`uat-manifest.yml`** at project root:
-
-```bash
-SKILL_DIR="$(bash .agents/skills/uat-harness-skill/scripts/where-skill.sh)"
-cp "$SKILL_DIR/templates/manifest-template.yml" ./uat-manifest.yml
-# edit flows, tiers, destructive_commands
-```
-
-Or run one command to scaffold manifest + wire scripts:
+Run one command to scaffold `uat-manifest.yml` and wire `uat:*` scripts:
 
 ```bash
 node .agents/skills/uat-harness-skill/scripts/setup.mjs --yes
 ```
 
-If you want interview-style flow mapping without auto-wiring scripts, use agent **`init`**.
+If you prefer interview-style flow mapping, use **`init`** instead of `setup`.
 
-2. **npm scripts** in `package.json` (required for `npm run uat:*`):
+`setup` wires this script set in `package.json`:
 
 ```json
 {
@@ -156,9 +150,8 @@ If you want interview-style flow mapping without auto-wiring scripts, use agent 
 }
 ```
 
-Tier scripts resolve **project root** from `uat-manifest.yml` / `package.json` in cwd — run them from the consumer repo root.
-
-3. **Reload your agent** after install.
+Tier scripts resolve project root from `uat-manifest.yml` / `package.json` in cwd.  
+Run them from the consumer repo root and reload your agent after install.
 
 ### Example consumer
 
@@ -167,7 +160,7 @@ See `examples/consumer-demo/` in the skill repo: runnable demo server, `uat-mani
 ### Update skill
 
 ```bash
-npx skills update uat-harness-skill -y
+npx skills@latest update uat-harness-skill -y
 npx skills list
 ```
 
