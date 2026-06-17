@@ -26,7 +26,8 @@ Each project owns a root-level **`uat-manifest.yml`**. The generic skill never h
 | `destructive_commands` | Agent must confirm before running |
 | `safety_notes` | Shown at start of Tier D / any write test |
 | `environments` | Per-surface env vars + `read_only` |
-| `docs` | Paths to USERFLOW, README, etc. |
+| `docs` | Paths to UAT.md, USERFLOW, README, etc. |
+| `project_context` | Per-project agent memory — audience, auth, journeys, out_of_scope |
 | `locale` | Default locale, toggle, viewport bounds |
 | `preflight.health_path` | HTTP path to probe (default `/`) — e.g. `/api/health` |
 | `linked_repos[]` | Sibling repos for discovery/audit (`id`, `path`, optional `base_url`) |
@@ -58,6 +59,23 @@ flows:
 ```
 
 **Subset scope:** user says `--flows billing` or `flow ids: billing,home` → agent runs only those flows in Tier C.
+
+## project_context (per-project tailoring)
+
+Agents read this on every session. Fill via `reference/tailor.md`.
+
+```yaml
+project_context:
+  audience: "Operators on /helloboss portal"
+  product_surface: "/helloboss"
+  auth: "Auth0 — Tier C needs logged-in session"
+  critical_journeys:
+    - "Login → inbox → reply"
+  out_of_scope:
+    - "Webhook endpoints"
+  notes:
+    - "zh-TW default locale"
+```
 
 ## Tier commands (examples)
 

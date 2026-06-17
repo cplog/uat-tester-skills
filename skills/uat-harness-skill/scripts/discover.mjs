@@ -30,6 +30,7 @@ const SKIP_DIRS = new Set([
 
 const UI_PAGE_GLOBS = [
   /^app\/(.+)\/page\.(tsx|jsx|ts|js)$/,
+  /^src\/app\/(.+)\/page\.(tsx|jsx|ts|js)$/,
   /^pages\/(.+)\.(tsx|jsx|ts|js)$/,
   /^src\/pages\/(.+)\.(tsx|jsx|ts|js)$/,
   /^src\/routes\/(.+)\.(tsx|jsx|ts|js)$/,
@@ -37,6 +38,7 @@ const UI_PAGE_GLOBS = [
 
 const API_ROUTE_PATTERNS = [
   /^app\/api\/(.+)\/route\.(ts|js)$/,
+  /^src\/app\/api\/(.+)\/route\.(ts|js)$/,
   /^pages\/api\/(.+)\.(ts|js)$/,
   /^src\/pages\/api\/(.+)\.(ts|js)$/,
 ];
@@ -64,7 +66,9 @@ function walkFiles(root, maxDepth = 8, depth = 0, files = []) {
 function toRouteFromAppSegment(seg) {
   const parts = seg.split('/').filter(Boolean);
   if (parts[parts.length - 1] === 'page') parts.pop();
-  let route = `/${parts.join('/')}`;
+  // Strip Next.js route groups: (group) does not appear in the URL.
+  const visible = parts.filter((p) => !/^\([^)]+\)$/.test(p));
+  let route = `/${visible.join('/')}`;
   route = route.replace(/\/\[[^\]]+\]/g, '/:param');
   if (route === '/') return '/';
   return route.replace(/\/+/g, '/');
@@ -202,6 +206,29 @@ function extractOpenApiPathsFromYaml(text, source) {
   return out;
 }
 
+function parseNextMajor(pkg) {
+  const raw = pkg?.dependencies?.next || pkg?.devDependencies?.next;
+  if (!raw) return null;
+  const cleaned = String(raw).replace(/^[\^~>=<]+/, '');
+  const major = Number.parseInt(cleaned.split('.')[0], 10);
+  return Number.isFinite(major) ? major : null;
+}
+
+function hasEslintConfig(projectRoot) {
+  return ['eslint.config.mjs', 'eslint.config.js', 'eslint.config.ts', '.eslintrc.json'].some(
+    (n) => fs.existsSync(path.join(projectRoot, n))
+  );
+}
+
+function resolveLintCommand(projectRoot, pkg, scriptName, scriptCmd) {
+  const nextMajor = parseNextMajor(pkg);
+  if (nextMajor !== null && nextMajor >= 16 && /^next\s+lint\b/.test(scriptCmd.trim())) {
+    if (hasEslintConfig(projectRoot)) return 'npx eslint .';
+    return null;
+  }
+  return `npm run ${scriptName}`;
+}
+
 function discoverPackageScripts(projectRoot) {
   const pkgPath = path.join(projectRoot, 'package.json');
   if (!fs.existsSync(pkgPath)) return { static: [], smoke: [], worker: [] };
@@ -217,7 +244,12 @@ function discoverPackageScripts(projectRoot) {
   const workerCandidates = [];
   for (const [name, cmd] of Object.entries(scripts)) {
     const n = name.toLowerCase();
-    if (['lint', 'typecheck', 'type-check', 'build', 'test:unit', 'test'].includes(n)) {
+    if (n === 'lint') {
+      const resolved = resolveLintCommand(projectRoot, pkg, name, cmd);
+      if (resolved) staticCandidates.push(resolved);
+      continue;
+    }
+    if (['typecheck', 'type-check', 'build', 'test:unit', 'test'].includes(n)) {
       staticCandidates.push(`npm run ${name}`);
     }
     if (/smoke|health|verify|e2e|integration/.test(n)) {
@@ -282,23 +314,53 @@ function discoverInlineServerRoutes(projectRoot) {
   return { uiRoutes, apiRoutes };
 }
 
-export function discoverProject(projectRoot) {
+export function loadNextConfigBasePath(projectRoot) {
+  const candidates = ['next.config.mjs', 'next.config.js', 'next.config.ts'];
+  for (const name of candidates) {
+    const abs = path.join(projectRoot, name);
+    if (!fs.existsSync(abs)) continue;
+    try {
+      const text = fs.readFileSync(abs, 'utf8');
+      // Match basePath: '/helloboss' or basePath: "/helloboss"
+      const m = text.match(/basePath\s*:\s*["']([^"']+)["']/);
+      if (m) return m[1].replace(/\/$/, '') || '';
+    } catch {
+      continue;
+    }
+  }
+  return '';
+}
+
+function prependBasePath(routes, basePath) {
+  if (!basePath) return routes;
+  return routes.map((r) => ({
+    ...r,
+    path: basePath + (r.path === '/' ? '' : r.path),
+  }));
+}
+
+function discoverProject(projectRoot) {
+  const basePath = loadNextConfigBasePath(projectRoot);
   const fromFiles = discoverUiRoutes(projectRoot);
   const inline = discoverInlineServerRoutes(projectRoot);
   const uiMap = new Map();
-  for (const r of [...fromFiles, ...inline.uiRoutes]) {
+  for (const r of prependBasePath([...fromFiles, ...inline.uiRoutes], basePath)) {
     uiMap.set(r.path, r);
   }
   const uiRoutes = [...uiMap.values()].sort((a, b) => a.path.localeCompare(b.path));
   const apiRoutes = mergeApiRoutes(
-    discoverApiRoutesFromFiles(projectRoot),
+    prependBasePath(discoverApiRoutesFromFiles(projectRoot), basePath),
     discoverFastApiRoutes(projectRoot),
     discoverOpenApi(projectRoot),
-    inline.apiRoutes
+    prependBasePath(inline.apiRoutes, basePath)
   );
   const scripts = discoverPackageScripts(projectRoot);
   let framework = 'unknown';
-  if (fs.existsSync(path.join(projectRoot, 'next.config.js')) || fs.existsSync(path.join(projectRoot, 'next.config.mjs'))) {
+  if (
+    fs.existsSync(path.join(projectRoot, 'next.config.js')) ||
+    fs.existsSync(path.join(projectRoot, 'next.config.mjs')) ||
+    fs.existsSync(path.join(projectRoot, 'next.config.ts'))
+  ) {
     framework = 'nextjs';
   } else if (fs.existsSync(path.join(projectRoot, 'vite.config.ts')) || fs.existsSync(path.join(projectRoot, 'vite.config.js'))) {
     framework = 'vite';
@@ -341,6 +403,19 @@ function linkedRepoPaths(primaryRoot) {
   } catch {
     return [];
   }
+}
+
+/** Heuristic: discovery likely incomplete (stale skill or unsupported layout). */
+export function discoveryLikelyIncomplete(primaryRoot, discovery) {
+  if (discovery.uiRoutes.length > 0) return false;
+  const srcApp = path.join(primaryRoot, 'src', 'app');
+  const appDir = path.join(primaryRoot, 'app');
+  const hasAppRouter = fs.existsSync(srcApp) || fs.existsSync(appDir);
+  const hasNext =
+    fs.existsSync(path.join(primaryRoot, 'next.config.ts')) ||
+    fs.existsSync(path.join(primaryRoot, 'next.config.js')) ||
+    fs.existsSync(path.join(primaryRoot, 'next.config.mjs'));
+  return hasAppRouter && hasNext;
 }
 
 export function discoverAll(primaryRoot) {

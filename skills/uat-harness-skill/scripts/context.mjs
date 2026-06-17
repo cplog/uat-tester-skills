@@ -155,7 +155,23 @@ export function loadContext(cwd = process.cwd()) {
   };
 }
 
-function formatManifestSummary(doc) {
+function extractProjectContext(text) {
+  const out = {};
+  let inBlock = false;
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/\s*#.*$/, '');
+    if (line.trim() === 'project_context:') {
+      inBlock = true;
+      continue;
+    }
+    if (inBlock && /^\w/.test(line.trim()) && !line.startsWith(' ')) break;
+    const m = line.match(/^  (\w+):\s*(.+)/);
+    if (inBlock && m) out[m[1]] = m[2].trim().replace(/^['"]|['"]$/g, '');
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+function formatManifestSummary(doc, manifestText) {
   if (!doc) return '';
   const lines = [
     `# uat-manifest.yml`,
@@ -169,6 +185,11 @@ function formatManifestSummary(doc) {
     `- **extra_services:** ${(doc.tiers?.extra_services || []).map((s) => s.id).join(', ') || '(none)'}`,
     `- **destructive_commands:** ${(doc.destructive_commands || []).length}`,
   ];
+  const pc = manifestText ? extractProjectContext(manifestText) : null;
+  if (pc) {
+    lines.push('', '**project_context (tailored):**');
+    for (const [k, v] of Object.entries(pc)) lines.push(`- ${k}: ${v}`);
+  }
   if (doc.safety_notes?.length) {
     lines.push('', '**Safety notes:**');
     for (const n of doc.safety_notes) lines.push(`- ${n}`);
@@ -191,12 +212,13 @@ async function cli() {
     return;
   }
 
-  const parts = [formatManifestSummary(ctx.doc)];
+  const parts = [formatManifestSummary(ctx.doc, ctx.hasManifest ? safeRead(resolveManifestPath(cwd)) : null)];
   if (ctx.uatMd) {
     parts.push(`# UAT.md\n\n${ctx.uatMd.trim()}`);
   }
   parts.push(
-    'NEXT STEP: If the user named a sub-command (init, tier-a, tier-b, tier-c, tier-d, report), read reference/<command>.md. ' +
+    'NEXT STEP: If the user named a sub-command (tailor, init, tier-a, tier-b, tier-c, tier-d, report), read reference/<command>.md. ' +
+      'If manifest looks generic (placeholder checks), run tailor.mjs before tiers. ' +
       'Otherwise infer minimum tier from change scope and user message; subset flows when requested.'
   );
   process.stdout.write(parts.join('\n\n---\n\n') + '\n');

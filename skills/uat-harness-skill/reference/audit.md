@@ -34,9 +34,10 @@ One line per finding, ranked by severity:
 
 | Tag | Meaning | Action |
 |-----|---------|--------|
+| `discovery-gap:` | App router on disk but 0 routes found | Update skill — **do not trust orphan counts** |
 | `missing-ui:` | Route on disk, not in `flows[]` | Add flow with `path` + `checks` |
 | `missing-api:` | Endpoint not in flows or deferred | Add flow check or `tiers.smoke` |
-| `orphan:` | Manifest path not found in repo | Rename path or remove stale flow |
+| `orphan:` | Manifest path not found in repo | Rename path or remove stale flow — **only when routes_discovered > 0** |
 | `no-checks:` | Flow with empty `checks[]` | Add operator checks |
 | `no-critical:` | No flow marked `critical: true` | Flag at least home/checkout |
 | `deferred:` | Intentionally skipped (ledger) | No action — audit respects this |

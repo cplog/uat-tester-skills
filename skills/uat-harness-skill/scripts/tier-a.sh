@@ -11,10 +11,12 @@ if [[ ! -f "$MANIFEST" ]]; then
 fi
 
 echo "=== Tier A — static ($(node "$READER" "$MANIFEST" meta project_id)) ==="
+PREFLIGHT="$(dirname "$0")/lib/static-preflight.mjs"
 while IFS= read -r cmd; do
   [[ -z "$cmd" ]] && continue
-  echo "→ $cmd"
-  (cd "$PROJECT_ROOT" && eval "$cmd")
+  resolved="$(node "$PREFLIGHT" "$PROJECT_ROOT" "$cmd")" || exit $?
+  echo "→ $resolved"
+  (cd "$PROJECT_ROOT" && eval "$resolved")
 done < <(node "$READER" "$MANIFEST" commands static)
 
 echo "Tier A passed."

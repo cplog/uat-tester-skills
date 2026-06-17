@@ -12,6 +12,8 @@ import { execFileSync } from 'node:child_process';
 import { loadContext } from './context.mjs';
 import { runPreflight } from './preflight.mjs';
 import { printBanner } from './lib/banner.mjs';
+import { discoverAll } from './discover.mjs';
+import { assessProjectHealth, formatHealthPretty } from './lib/health.mjs';
 
 const COMMON_DEV_PORTS = [3000, 4321, 5173, 5174, 8080, 8100, 8200];
 
@@ -317,10 +319,20 @@ export async function gatherSignals(cwd = process.cwd(), options = {}) {
   const tiers = inferTiers(git.changedFiles, doc);
   const extraServices = inferExtraServices(git.changedFiles, doc);
   const preflight = await runPreflight(cwd, { url: process.env.UAT_URL?.trim() || undefined });
+  const discovery = discoverAll(cwd);
+  const health = assessProjectHealth(cwd, discovery, doc);
 
   const recommendations = ctx.hasManifest
     ? buildRecommendations({ tiers, flows, extraServices, devServer, doc, preflight })
     : [{ tier: 'init', command: 'reference/init.md', reason: 'No uat-manifest.yml — scaffold first' }];
+
+  if (!health.ok) {
+    recommendations.unshift({
+      tier: 'health',
+      command: health.fixes[0] || 'reference/setup.md',
+      reason: `Fix blockers before tiers: ${health.blockers.map((b) => b.id).join(', ')}`,
+    });
+  }
 
   return {
     setup: {
@@ -329,6 +341,13 @@ export async function gatherSignals(cwd = process.cwd(), options = {}) {
       projectId: doc.project_id || null,
       flowIds: (doc.flows || []).map((f) => f.id),
       hasUatMd: !!ctx.uatMd,
+    },
+    health: {
+      ok: health.ok,
+      blockers: health.blockers,
+      warnings: health.warnings,
+      fixes: health.fixes,
+      routes_discovered: discovery.uiRoutes.length,
     },
     git,
     devServer,
@@ -359,10 +378,17 @@ async function cli() {
       `**Branch:** ${signals.git.branch || 'n/a'} · **Changed:** ${signals.git.changedCount} file(s)`,
       `**Dev server (port probe):** ${signals.devServer.running ? signals.devServer.ports.join(', ') : 'not detected'}`,
       `**App HTTP preflight:** ${signals.preflight.reachable ? `OK — ${signals.preflight.baseUrl}` : `DOWN — ${signals.preflight.baseUrl}`}`,
+      `**Routes discovered:** ${signals.health.routes_discovered}`,
+      `**Harness health:** ${signals.health.ok ? 'OK' : `BLOCKED — ${signals.health.blockers.map((b) => b.id).join(', ')}`}`,
+    ];
+    if (!signals.health.ok || signals.health.warnings.length) {
+      lines.push('', formatHealthPretty(signals.health));
+    }
+    lines.push(
       '',
       `**Inferred tiers:** ${signals.inferred.tiers.join(', ') || '(none)'}`,
       `**Inferred flows:** ${signals.inferred.flows.join(', ') || '(all or unspecified)'}`,
-    ];
+    );
     if (signals.inferred.extraServices.length) {
       lines.push(`**Extra services:** ${signals.inferred.extraServices.join(', ')}`);
     }

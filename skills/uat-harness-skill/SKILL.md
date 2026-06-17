@@ -18,9 +18,34 @@ You MUST do these steps before proceeding:
 1. Run `node <skill-dir>/scripts/context.mjs` once per session.  
    (`<skill-dir>` is `.agents/skills/uat-harness-skill` after install, or `skills/uat-harness-skill` when vendored.)  
    If output is `NO_MANIFEST`, run `setup` (preferred) or follow [reference/init.md](reference/init.md).
-2. If the user did **not** name a sub-command, run `node <skill-dir>/scripts/context-signals.mjs --pretty` and give **2–3 recommendations**.
-3. If the user named a sub-command (`setup`, `init`, `review`, `audit`, `tier-a`, `tier-b`, `tier-c`, `tier-d`, `report`), read `reference/<command>.md` before acting.
-4. User scope (changed files, flow ids, tiers, URL, read-only DB) **narrows** tiers and `flows[]` subset.
+2. Run `node <skill-dir>/scripts/context-signals.mjs --pretty` — **read `health` before any tier**.  
+   If `health.ok` is false, run the listed `fix:` commands first (skill update, lint migration, manifest scaffold). **Do not trust audit orphans or run tier-a when blockers are present.**
+3. If the user did **not** name a sub-command, use context-signals recommendations (2–3 picks).
+4. If the user named a sub-command (`setup`, `tailor`, `init`, `review`, `audit`, `tier-a`, `tier-b`, `tier-c`, `tier-d`, `report`), read `reference/<command>.md` before acting.
+5. User scope (changed files, flow ids, tiers, URL, read-only DB) **narrows** tiers and `flows[]` subset.
+
+### Bootstrap health (agent guardrails)
+
+| Signal | Meaning | Agent action |
+|--------|---------|--------------|
+| `routes_discovered: 0` + App Router on disk | Stale or broken discovery | `npx skills@latest update uat-harness-skill -y` then re-run `discover.mjs` |
+| `discovery-gap:` in audit | Orphan list suppressed — do not prune flows | Fix discovery first |
+| `blocker: next-lint-removed` | Next.js 16+ — `next lint` gone | Run codemod; update `package.json` lint script before tier-a |
+| `NO_MANIFEST` | Not onboarded | `setup.mjs --yes` or `init` |
+| Audit shows many `orphan:` + 0 routes discovered | False positives | Update skill — do not delete manifest flows |
+
+Correct setup order for a new repo:
+
+```bash
+npx skills@latest add cplog/uat-tester-skills --skill uat-harness-skill -y
+node .agents/skills/uat-harness-skill/scripts/setup.mjs --yes
+node .agents/skills/uat-harness-skill/scripts/tailor.mjs --pretty   # agent customizes per project
+# Agent edits uat-manifest.yml + UAT.md using reference/tailor.md
+node .agents/skills/uat-harness-skill/scripts/context-signals.mjs --pretty   # health must be OK
+npm run uat:preflight && npm run uat:tier-a
+```
+
+**`setup`** wires scripts and a skeleton manifest. **`tailor`** tells the agent how to customize flows, checks, `project_context`, and `UAT.md` for *this* repo — never ship generic discovery dumps unchanged.
 
 ## Before you start
 
@@ -36,6 +61,7 @@ You MUST do these steps before proceeding:
 | Command | When | Reference |
 |---------|------|-----------|
 | `setup` | One-command onboarding: scaffold manifest + wire npm scripts | [reference/setup.md](reference/setup.md) |
+| `tailor` | **Project-specific** manifest + UAT.md customization (agent-driven) | [reference/tailor.md](reference/tailor.md) |
 | `init` | No manifest or refresh project UAT config | [reference/init.md](reference/init.md) |
 | `review` | Diff-scoped minimal tier/flow scope for this PR | [reference/review.md](reference/review.md) |
 | `audit` | Compare manifest vs discovered routes/APIs | [reference/audit.md](reference/audit.md) |
@@ -55,6 +81,7 @@ bash <skill-dir>/scripts/tier-a.sh
 bash <skill-dir>/scripts/tier-b.sh [--url https://…]
 bash <skill-dir>/scripts/tier-c.sh [--flows id1,id2] [--url https://…]
 bash <skill-dir>/scripts/tier-d.sh [--full] [--service <id>]
+node <skill-dir>/scripts/tailor.mjs [--pretty|--json]
 node <skill-dir>/scripts/discover.mjs [--pretty|--json|--draft]
 node <skill-dir>/scripts/review.mjs [--pretty|--json] [--base ref]
 node <skill-dir>/scripts/audit.mjs [--pretty|--json]
@@ -64,14 +91,15 @@ npm run uat:preflight   # if wired in package.json
 
 ## Routing rules
 
-1. **No sub-command**: run `context-signals.mjs --pretty`; recommend 2–3 picks with reasons; wait for user confirmation before Tier D or destructive scripts.
+1. **No sub-command**: run `context-signals.mjs --pretty`; if `health.ok` is false, fix blockers before recommending tiers.
 2. **Sub-command match**: load `reference/<command>.md` and follow it.
 3. **Intent without command name** (e.g. "smoke test the preview") → map to `tier-b`; "walk through billing" → `tier-c` with `--flows billing`.
 4. **`tier-c` with CDP available** — after `tier-c.sh` prints subagent dispatch instructions, launch a subagent (Task tool) to execute the walkthrough; do not skip automation and only print the checklist.
 5. **`NO_MANIFEST` from context.mjs**: run `init` flow before any tier.
 6. **`audit` or "coverage gaps"**: run `discover.mjs` + `audit.mjs`; offer `init` merge for missing flows.
 7. **`review` or "what to UAT for this PR"**: run `review.mjs`; run only tiers in the `net:` line.
-8. **`setup` or "onboard this repo for UAT"**: run `setup.mjs --yes`; then run `audit.mjs` and report remaining gaps.
+8. **`setup` or "onboard this repo for UAT"**: run `setup.mjs --yes`; then **`tailor.mjs`** and customize manifest + `UAT.md` per [reference/tailor.md](reference/tailor.md).
+9. **`tailor` or "customize UAT for this project"**: run `tailor.mjs --pretty`; read project docs; edit `flows[]`, `project_context`, `UAT.md`.
 
 ## Scope adjustment
 

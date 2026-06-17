@@ -7,7 +7,17 @@ framework: nextjs
 base_url: http://localhost:3000
 
 docs:
-  userflow: setup/docs/guides/USERFLOW.md
+  uat: UAT.md
+  userflow: setup/docs/guides/USERFLOW.md   # omit if not present
+
+# Per-project context — agents read on every UAT session (see reference/tailor.md)
+project_context:
+  audience: "(who runs UAT)"
+  product_surface: "/"
+  auth: "(none | Auth0 | magic-link | …)"
+  critical_journeys: []
+  out_of_scope: []
+  notes: []
 
 locale:
   default: en

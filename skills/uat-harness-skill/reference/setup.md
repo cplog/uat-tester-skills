@@ -52,12 +52,22 @@ node "$SKILL_DIR/scripts/setup.mjs" --env custom --url https://preview.example.c
 
 - Manifest status: created / skipped / refreshed
 - Script wiring status: updated / already present / skipped
-- Audit result (`Lean already. Ship.` or tagged gaps)
+- **Health check** — routes discovered, blockers (stale skill, Next 16 lint), warnings
+- Audit result (`Lean already. Ship.` or tagged gaps) — **ignore `orphan:` when `discovery-gap:` is present**
 - Chosen base URL (`local`, preview URL, or custom)
+
+If health blockers exist, report fixes before recommending tier runs.
 
 ## After setup
 
-Recommend next commands:
+**Required for new projects:** run tailor so the agent customizes flows for this repo:
+
+```bash
+npm run uat:tailor
+# Agent follows reference/tailor.md → edits uat-manifest.yml + UAT.md
+```
+
+Then:
 
 ```bash
 npm run uat:preflight

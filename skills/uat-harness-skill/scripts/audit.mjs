@@ -9,8 +9,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { discoverAll, draftSuggestions } from './discover.mjs';
+import { discoverAll, draftSuggestions, discoveryLikelyIncomplete } from './discover.mjs';
 import { printBanner } from './lib/banner.mjs';
+import { isFlowOrphan, normalizeRoute } from './lib/route-match.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,10 +41,6 @@ function loadManifestDoc(manifestPath) {
   }
 }
 
-function normalizeRoute(p) {
-  return p.replace(/\/+$/, '') || '/';
-}
-
 function flowPaths(flow) {
   return (flow.path || []).map(normalizeRoute);
 }
@@ -56,10 +53,11 @@ function deferredPaths(manifestDoc) {
   return set;
 }
 
-function buildFindings(discovery, manifestDoc) {
+function buildFindings(discovery, manifestDoc, primaryRoot) {
   const manifestFlows = manifestDoc.flows || [];
   const deferred = deferredPaths(manifestDoc);
   const deferredList = manifestDoc.deferred_coverage || [];
+  const incomplete = discoveryLikelyIncomplete(primaryRoot, discovery);
 
   const manifestPaths = new Set();
   for (const f of manifestFlows) {
@@ -79,13 +77,20 @@ function buildFindings(discovery, manifestDoc) {
   });
 
   const discoveredSet = new Set([...discoveredUi, ...discoveredApi]);
-  const orphanFlows = manifestFlows.filter((f) => {
-    const paths = flowPaths(f);
-    if (!paths.length) return false;
-    return paths.every((p) => !discoveredSet.has(p));
-  });
+  const orphanFlows = incomplete
+    ? []
+    : manifestFlows.filter((f) => isFlowOrphan(f, discoveredSet, discovery.uiRoutes));
 
   const findings = [];
+
+  if (incomplete && manifestFlows.length) {
+    findings.push({
+      tag: 'discovery-gap',
+      rank: 0,
+      text:
+        'App router detected but 0 UI routes found — update skill: npx skills update uat-harness-skill -y (orphan checks suppressed)',
+    });
+  }
 
   for (const r of missingUi) {
     findings.push({
@@ -168,6 +173,7 @@ function buildFindings(discovery, manifestDoc) {
       missing_api: missingApi.length,
       orphan_flows: orphanFlows.length,
       deferred_count: deferredList.length,
+      discovery_incomplete: incomplete,
       has_smoke_tier: hasSmoke,
       has_static_tier: hasStatic,
       suggested_smoke: draft.tiers.smoke,
@@ -244,7 +250,7 @@ function main() {
 
   const manifestDoc = loadManifestDoc(opts.manifest);
   manifestDoc.manifestPath = path.relative(opts.root, opts.manifest);
-  const report = buildFindings(discovery, manifestDoc);
+  const report = buildFindings(discovery, manifestDoc, opts.root);
 
   if (opts.json) {
     console.log(JSON.stringify(report, null, 2));
