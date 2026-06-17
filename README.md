@@ -43,6 +43,7 @@ Add npm scripts to the consumer `package.json` (required for `npm run uat:*` bel
 ```json
 {
   "scripts": {
+    "uat:setup": "node .agents/skills/uat-harness-skill/scripts/setup.mjs --yes",
     "uat:preflight": "node .agents/skills/uat-harness-skill/scripts/preflight.mjs --pretty",
     "uat:signals": "node .agents/skills/uat-harness-skill/scripts/context-signals.mjs --pretty",
     "uat:tier-a": "bash .agents/skills/uat-harness-skill/scripts/tier-a.sh",
@@ -58,9 +59,10 @@ Add npm scripts to the consumer `package.json` (required for `npm run uat:*` bel
 }
 ```
 
-Discovery and coverage audit (after `init` or when refreshing manifest):
+One-command onboarding + discovery/audit:
 
 ```bash
+npm run uat:setup             # scaffold uat-manifest.yml + wire uat:* scripts
 npm run uat:discover          # routes + API endpoints in repo
 npm run uat:review            # diff-scoped: minimal tiers/flows for this PR
 npm run uat:audit             # whole-repo coverage gaps (tagged output)
@@ -69,6 +71,12 @@ npm run uat:codegen           # Playwright skeleton → .uat/generated/flows.spe
 ```
 
 **Review vs audit:** `uat:review` answers “what should I UAT for *this change*?” (git diff). `uat:audit` answers “what routes lack manifest coverage?” (whole repo). Use `deferred_coverage[]` in the manifest for paths intentionally covered only by smoke (see skill `reference/audit.md`).
+
+`uat:setup` chooses base URL automatically (`http://127.0.0.1:3000` by default). To target preview/deployed directly:
+
+```bash
+node .agents/skills/uat-harness-skill/scripts/setup.mjs --env custom --url https://preview.example.com --yes
+```
 
 Multi-repo backend (sibling API repo):
 

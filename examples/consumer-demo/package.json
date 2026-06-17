@@ -4,6 +4,7 @@
   "private": true,
   "description": "Runnable example consumer for uat-harness-skill",
   "scripts": {
+    "uat:setup": "node .agents/skills/uat-harness-skill/scripts/setup.mjs --yes",
     "dev": "node server.mjs",
     "lint": "node -e \"process.exit(0)\"",
     "build": "node -e \"process.exit(0)\"",

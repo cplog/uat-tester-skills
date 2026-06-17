@@ -2,6 +2,8 @@
 
 One-time (or refresh) project setup. Crawl the repo, interview the user, write **`uat-manifest.yml`** at the project root. Optionally write **`UAT.md`** (operator summary, like Impeccable's PRODUCT.md).
 
+If the user wants a deterministic one-command bootstrap (manifest + npm script wiring), use [setup.md](setup.md) instead.
+
 ## Step 1: Load current state
 
 - Check for existing `uat-manifest.yml` (or `$UAT_MANIFEST`).
