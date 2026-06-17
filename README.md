@@ -39,6 +39,7 @@ Add npm scripts to the consumer `package.json` (required for `npm run uat:*` bel
     "uat:tier-d": "bash .agents/skills/uat-harness-skill/scripts/tier-d.sh",
     "uat:browser": "bash .agents/skills/uat-harness-skill/scripts/browser.sh",
     "uat:discover": "node .agents/skills/uat-harness-skill/scripts/discover.mjs --pretty",
+    "uat:review": "node .agents/skills/uat-harness-skill/scripts/review.mjs --pretty",
     "uat:audit": "node .agents/skills/uat-harness-skill/scripts/audit.mjs --pretty",
     "uat:codegen": "node .agents/skills/uat-harness-skill/scripts/codegen.mjs --force"
   }
@@ -49,10 +50,13 @@ Discovery and coverage audit (after `init` or when refreshing manifest):
 
 ```bash
 npm run uat:discover          # routes + API endpoints in repo
-npm run uat:audit             # gaps vs uat-manifest.yml flows[]
+npm run uat:review            # diff-scoped: minimal tiers/flows for this PR
+npm run uat:audit             # whole-repo coverage gaps (tagged output)
 node .agents/skills/uat-harness-skill/scripts/discover.mjs --draft   # suggested YAML
 npm run uat:codegen           # Playwright skeleton → .uat/generated/flows.spec.ts
 ```
+
+**Review vs audit:** `uat:review` answers “what should I UAT for *this change*?” (git diff). `uat:audit` answers “what routes lack manifest coverage?” (whole repo). Use `deferred_coverage[]` in the manifest for paths intentionally covered only by smoke (see skill `reference/audit.md`).
 
 Multi-repo backend (sibling API repo):
 

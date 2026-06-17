@@ -61,6 +61,7 @@ uat-tester-skills/
 │   ├── reference.md                   # Manifest schema reference
 │   ├── reference/                     # Per-command instructions
 │   │   ├── init.md
+│   │   ├── review.md
 │   │   ├── audit.md
 │   │   ├── tier-a.md
 │   │   ├── tier-b.md
@@ -77,6 +78,7 @@ uat-tester-skills/
 │   │   ├── tier-c-automation.mjs      # Subagent dispatch prompt when CDP is up
 │   │   ├── browser.sh                 # Launch Chrome with CDP for Tier C
 │   │   ├── discover.mjs               # Route/API discovery (init + audit)
+│   │   ├── review.mjs                 # Diff-scoped minimal UAT scope
 │   │   ├── audit.mjs                  # Manifest vs repo coverage gaps
 │   │   ├── codegen.mjs                # flows[] → Playwright skeleton
 │   │   ├── tier-d.sh                  # Worker lane runner
@@ -183,12 +185,12 @@ npm run uat:tier-d
 
 ### Skill (`skills/uat-harness-skill/`)
 
-- **`SKILL.md`** and `reference/*.md` are the agent-facing contract. Agents must read `reference/<command>.md` when a sub-command (`init`, `audit`, `tier-a`, `tier-b`, `tier-c`, `tier-d`, `report`) is invoked.
+- **`SKILL.md`** and `reference/*.md` are the agent-facing contract. Agents must read `reference/<command>.md` when a sub-command (`init`, `review`, `audit`, `tier-a`, `tier-b`, `tier-c`, `tier-d`, `report`) is invoked.
 - **`scripts/context.mjs`** loads `uat-manifest.yml` (and optional `UAT.md`) and prints a summary. If no manifest exists, it emits `NO_MANIFEST` so the agent must run `init` first.
 - **`scripts/context-signals.mjs`** inspects git state, dev-server ports, and preflight status to recommend which tiers to run. It does not run tiers itself.
 - **`scripts/preflight.mjs`** probes `base_url` plus optional `preflight.health_path`. Tier B uses `--require` and exits non-zero if the app is down.
 - **`scripts/tier-*.sh`** read commands from the manifest via `lib/read-manifest.mjs` and execute them from the consumer project root.
-- **`scripts/discover.mjs`**, **`scripts/audit.mjs`**, and **`scripts/codegen.mjs`** support manifest drafting: scan UI/API routes, report coverage gaps vs `flows[]`, and emit an optional Playwright skeleton under `.uat/generated/`.
+- **`scripts/discover.mjs`**, **`scripts/review.mjs`**, **`scripts/audit.mjs`**, and **`scripts/codegen.mjs`** support manifest drafting: scan UI/API routes, recommend diff-scoped UAT scope, report coverage gaps vs `flows[]` (with `deferred_coverage[]` ledger), and emit an optional Playwright skeleton under `.uat/generated/`.
 - **`scripts/tier-c-automation.mjs`**, **`scripts/browser.sh`**, and **`scripts/lib/browser-control.mjs`** implement the CDP-based operator walkthrough. When a browser is listening on `UAT_CDP_URL` (default `http://127.0.0.1:9222`), `tier-c.sh` prints subagent dispatch instructions instead of a manual checklist.
 - **`scripts/lib/read-manifest.mjs`** now supports a `flows-json` command that powers the automation dispatcher.
 - **`templates/manifest-template.yml`** is the starting point for new consumers.

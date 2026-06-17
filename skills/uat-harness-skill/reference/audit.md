@@ -2,6 +2,8 @@
 
 Compare **`uat-manifest.yml`** against what exists in the codebase (UI routes, API endpoints, npm scripts). Use before/after `init` to find missing flows and empty tier lists.
 
+**Boundary:** UAT audit = coverage gaps only. Code quality, security, and performance belong in a normal review pass — not here. Lists findings; applies nothing.
+
 ## Step 1: Run discovery and audit
 
 From the consumer project root:
@@ -26,7 +28,39 @@ Draft manifest snippets (for `init` merge):
 node "$SKILL_DIR/scripts/discover.mjs" --draft
 ```
 
-## Step 2: Multi-repo (frontend + backend)
+## Step 2: Interpret tagged output
+
+One line per finding, ranked by severity:
+
+| Tag | Meaning | Action |
+|-----|---------|--------|
+| `missing-ui:` | Route on disk, not in `flows[]` | Add flow with `path` + `checks` |
+| `missing-api:` | Endpoint not in flows or deferred | Add flow check or `tiers.smoke` |
+| `orphan:` | Manifest path not found in repo | Rename path or remove stale flow |
+| `no-checks:` | Flow with empty `checks[]` | Add operator checks |
+| `no-critical:` | No flow marked `critical: true` | Flag at least home/checkout |
+| `deferred:` | Intentionally skipped (ledger) | No action — audit respects this |
+
+End line:
+
+- `net: N untested ui, M untested api, …` — gaps remain
+- `Lean already. Ship.` — no coverage gaps (deferred entries may still list)
+
+## Step 3: Deferred coverage ledger
+
+Surfaces you deliberately exclude from `flows[]` but want audit to ignore:
+
+```yaml
+deferred_coverage:
+  - id: api-health
+    path: /api/health
+    reason: covered by tiers.smoke only
+    revisit: when adding API flow checks
+```
+
+Re-run audit — path moves from `missing-api:` to `deferred:`.
+
+## Step 4: Multi-repo (frontend + backend)
 
 When API lives in a sibling repo, either:
 
@@ -40,27 +74,23 @@ linked_repos:
     base_url: http://127.0.0.1:8000
 ```
 
-Re-run audit — API routes from linked repos appear with a `[repo-name]` tag.
+Re-run audit — API routes from linked repos appear with a `[repo-name]` tag in discovery.
 
-## Step 3: Interpret the report
-
-| Section | Meaning | Action |
-|---------|---------|--------|
-| Missing UI flows | Route on disk, not in `flows[]` | Add flow with `path` + `checks` |
-| Missing API coverage | Endpoint not in any flow path or smoke | Add flow check or `tiers.smoke` curl/fetch |
-| Orphan flows | Manifest path not found in repo | Rename path or remove stale flow |
-| Suggested tiers.smoke | No smoke tier but APIs exist | Add health probe or existing npm script |
-
-Do not auto-edit the manifest without user confirmation.
-
-## Step 4: Recommend follow-up
+## Step 5: Recommend follow-up
 
 - Gaps in UI → offer `init` merge or manual `flows[]` edits
 - Gaps in API → suggest `tiers.smoke` one-liner or Tier B script
 - Large gap count → prioritize `critical: true` routes first
-- After manifest update → re-run `audit.mjs` until missing counts are acceptable
+- After manifest update → re-run `audit.mjs` until `Lean already. Ship.`
 
-## Step 5: Optional codegen handoff
+## Step 6: Review vs audit
+
+| Command | Scope | Question |
+|---------|-------|----------|
+| [review.md](review.md) | Git diff | What to UAT for *this PR*? |
+| **audit** | Whole repo | What routes lack manifest coverage? |
+
+## Step 7: Optional codegen handoff
 
 When the user wants executable tests (not just checklist):
 

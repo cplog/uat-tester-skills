@@ -1,7 +1,7 @@
 ---
 name: uat-harness-skill
 description: Manifest-driven UAT for web projects — tiers (static, smoke, operator flows, worker), deployment verification, and scoped checklists from uat-manifest.yml. Use when the user asks for UAT, acceptance testing, smoke test, operator flow validation, deployment verification, or tier-a/b/c/d harness runs.
-argument-hint: "[init|audit|tier-a|tier-b|tier-c|tier-d|report] [scope]"
+argument-hint: "[init|review|audit|tier-a|tier-b|tier-c|tier-d|report] [scope]"
 user-invocable: true
 ---
 
@@ -17,7 +17,7 @@ You MUST do these steps before proceeding:
 
 1. Run `node <skill-dir>/scripts/context.mjs` once per session (`<skill-dir>` = `.agents/skills/uat-harness-skill` after `npx skills add`, or `skills/uat-harness-skill` when vendored). Skip if you already have its output. `NO_MANIFEST` → follow [reference/init.md](reference/init.md).
 2. If the user did **not** name a sub-command, run `node <skill-dir>/scripts/context-signals.mjs --pretty` and lead with **2–3 recommendations**.
-3. If the user invoked a sub-command (`init`, `audit`, `tier-a`, `tier-b`, `tier-c`, `tier-d`, `report`), read `reference/<command>.md` next. Non-optional.
+3. If the user invoked a sub-command (`init`, `review`, `audit`, `tier-a`, `tier-b`, `tier-c`, `tier-d`, `report`), read `reference/<command>.md` next. Non-optional.
 4. User scope (changed files, flow ids, tiers, URL, read-only DB) **narrows** tiers and `flows[]` subset.
 
 ## Before you start
@@ -34,6 +34,7 @@ You MUST do these steps before proceeding:
 | Command | When | Reference |
 |---------|------|-----------|
 | `init` | No manifest or refresh project UAT config | [reference/init.md](reference/init.md) |
+| `review` | Diff-scoped minimal tier/flow scope for this PR | [reference/review.md](reference/review.md) |
 | `audit` | Compare manifest vs discovered routes/APIs | [reference/audit.md](reference/audit.md) |
 | `tier-a` | UI-only, lint/build gate | [reference/tier-a.md](reference/tier-a.md) |
 | `tier-b` | Deploy smoke, API health | [reference/tier-b.md](reference/tier-b.md) |
@@ -51,6 +52,7 @@ bash <skill-dir>/scripts/tier-b.sh [--url https://…]
 bash <skill-dir>/scripts/tier-c.sh [--flows id1,id2] [--url https://…]
 bash <skill-dir>/scripts/tier-d.sh [--full] [--service <id>]
 node <skill-dir>/scripts/discover.mjs [--pretty|--json|--draft]
+node <skill-dir>/scripts/review.mjs [--pretty|--json] [--base ref]
 node <skill-dir>/scripts/audit.mjs [--pretty|--json]
 node <skill-dir>/scripts/codegen.mjs [--force]
 npm run uat:preflight   # if wired in package.json
@@ -64,6 +66,7 @@ npm run uat:preflight   # if wired in package.json
 4. **`tier-c` with CDP available** — after `tier-c.sh` prints subagent dispatch instructions, launch a subagent (Task tool) to execute the walkthrough; do not skip automation and only print the checklist.
 5. **`NO_MANIFEST` from context.mjs**: run `init` flow before any tier.
 6. **`audit` or "coverage gaps"**: run `discover.mjs` + `audit.mjs`; offer `init` merge for missing flows.
+7. **`review` or "what to UAT for this PR"**: run `review.mjs`; run only tiers in the `net:` line.
 
 ## Scope adjustment
 

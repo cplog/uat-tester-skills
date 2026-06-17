@@ -31,11 +31,11 @@ function parseArgs(argv) {
 function loadManifestDoc(manifestPath) {
   const reader = path.join(__dirname, 'lib', 'read-manifest.mjs');
   const r = spawnSync(process.execPath, [reader, manifestPath, 'audit-doc'], { encoding: 'utf8' });
-  if (r.status !== 0) return { flows: [], tiers: {}, project_id: null };
+  if (r.status !== 0) return { flows: [], tiers: {}, deferred_coverage: [], project_id: null };
   try {
     return JSON.parse(r.stdout);
   } catch {
-    return { flows: [], tiers: {}, project_id: null };
+    return { flows: [], tiers: {}, deferred_coverage: [], project_id: null };
   }
 }
 
@@ -47,8 +47,19 @@ function flowPaths(flow) {
   return (flow.path || []).map(normalizeRoute);
 }
 
-function auditCoverage(discovery, manifestDoc) {
+function deferredPaths(manifestDoc) {
+  const set = new Set();
+  for (const d of manifestDoc.deferred_coverage || []) {
+    if (d.path) set.add(normalizeRoute(d.path));
+  }
+  return set;
+}
+
+function buildFindings(discovery, manifestDoc) {
   const manifestFlows = manifestDoc.flows || [];
+  const deferred = deferredPaths(manifestDoc);
+  const deferredList = manifestDoc.deferred_coverage || [];
+
   const manifestPaths = new Set();
   for (const f of manifestFlows) {
     for (const p of flowPaths(f)) manifestPaths.add(normalizeRoute(p));
@@ -57,8 +68,14 @@ function auditCoverage(discovery, manifestDoc) {
   const discoveredUi = discovery.uiRoutes.map((r) => normalizeRoute(r.path));
   const discoveredApi = discovery.apiRoutes.map((r) => normalizeRoute(r.path));
 
-  const missingUi = discovery.uiRoutes.filter((r) => !manifestPaths.has(normalizeRoute(r.path)));
-  const missingApi = discovery.apiRoutes.filter((r) => !manifestPaths.has(normalizeRoute(r.path)));
+  const missingUi = discovery.uiRoutes.filter((r) => {
+    const p = normalizeRoute(r.path);
+    return !manifestPaths.has(p) && !deferred.has(p);
+  });
+  const missingApi = discovery.apiRoutes.filter((r) => {
+    const p = normalizeRoute(r.path);
+    return !manifestPaths.has(p) && !deferred.has(p);
+  });
 
   const discoveredSet = new Set([...discoveredUi, ...discoveredApi]);
   const orphanFlows = manifestFlows.filter((f) => {
@@ -67,13 +84,81 @@ function auditCoverage(discovery, manifestDoc) {
     return paths.every((p) => !discoveredSet.has(p));
   });
 
+  const findings = [];
+
+  for (const r of missingUi) {
+    findings.push({
+      tag: 'missing-ui',
+      rank: 1,
+      text: `${r.path}  <- ${r.source}`,
+    });
+  }
+  for (const r of missingApi) {
+    const method = r.method ? `${r.method} ` : '';
+    findings.push({
+      tag: 'missing-api',
+      rank: 2,
+      text: `${method}${r.path}  <- ${r.source}`,
+    });
+  }
+  for (const f of orphanFlows) {
+    const paths = (f.path || []).join(', ');
+    findings.push({
+      tag: 'orphan',
+      rank: 3,
+      text: `${f.id}  <- ${paths} not found in repo`,
+    });
+  }
+  for (const f of manifestFlows) {
+    if (!(f.checks || []).length) {
+      findings.push({
+        tag: 'no-checks',
+        rank: 4,
+        text: `${f.id}  <- flow has 0 checks`,
+      });
+    }
+  }
+  if (manifestFlows.length && !manifestFlows.some((f) => f.critical)) {
+    findings.push({
+      tag: 'no-critical',
+      rank: 5,
+      text: `flows[]  <- no flow marked critical: true`,
+    });
+  }
+  for (const d of deferredList) {
+    if (!d.path) continue;
+    const reason = d.reason ? ` (${d.reason})` : '';
+    findings.push({
+      tag: 'deferred',
+      rank: 6,
+      text: `${normalizeRoute(d.path)}${reason}`,
+    });
+  }
+
+  findings.sort((a, b) => a.rank - b.rank || a.text.localeCompare(b.text));
+
   const draft = draftSuggestions(discovery);
   const hasSmoke = Boolean(manifestDoc.tiers?.smoke?.length);
   const hasStatic = Boolean(manifestDoc.tiers?.static?.length);
 
+  const gapCount =
+    missingUi.length + missingApi.length + orphanFlows.length + manifestFlows.filter((f) => !(f.checks || []).length).length;
+
+  const issueCount = missingUi.length + missingApi.length + orphanFlows.length +
+    manifestFlows.filter((f) => !(f.checks || []).length).length +
+    (manifestFlows.length && !manifestFlows.some((f) => f.critical) ? 1 : 0);
+
+  let net;
+  if (issueCount === 0) {
+    net = 'Lean already. Ship.';
+  } else {
+    net = `net: ${missingUi.length} untested ui, ${missingApi.length} untested api, ${orphanFlows.length} orphan, ${manifestFlows.filter((f) => !(f.checks || []).length).length} no-checks.`;
+  }
+
   return {
     project_id: manifestDoc.project_id || null,
     manifestPath: manifestDoc.manifestPath || 'uat-manifest.yml',
+    findings,
     summary: {
       ui_discovered: discovery.uiRoutes.length,
       api_discovered: discovery.apiRoutes.length,
@@ -81,68 +166,54 @@ function auditCoverage(discovery, manifestDoc) {
       missing_ui: missingUi.length,
       missing_api: missingApi.length,
       orphan_flows: orphanFlows.length,
+      deferred_count: deferredList.length,
       has_smoke_tier: hasSmoke,
       has_static_tier: hasStatic,
       suggested_smoke: draft.tiers.smoke,
+      issue_count: issueCount,
+      gap_count: gapCount,
     },
     missing_ui: missingUi,
     missing_api: missingApi,
     orphan_flows: orphanFlows.map((f) => ({ id: f.id, path: f.path })),
+    deferred: deferredList,
     suggestions: draft,
+    net,
   };
 }
 
 function printPretty(report) {
   console.log(`# UAT audit — ${report.project_id || 'project'}`);
   console.log('');
-  console.log('## Summary');
-  console.log(`- UI routes discovered: ${report.summary.ui_discovered}`);
-  console.log(`- API routes discovered: ${report.summary.api_discovered}`);
-  console.log(`- Flows in manifest: ${report.summary.flows_in_manifest}`);
-  console.log(`- Missing UI coverage: ${report.summary.missing_ui}`);
-  console.log(`- Missing API coverage: ${report.summary.missing_api}`);
-  console.log(`- Orphan flows (not in repo): ${report.summary.orphan_flows}`);
-  console.log(`- tiers.static configured: ${report.summary.has_static_tier ? 'yes' : 'no'}`);
-  console.log(`- tiers.smoke configured: ${report.summary.has_smoke_tier ? 'yes' : 'no'}`);
+  console.log('Coverage gaps only. Code quality / security / perf -> normal review.');
   console.log('');
 
-  if (report.missing_ui.length) {
-    console.log('## Missing UI flows (add to flows[])');
-    for (const r of report.missing_ui.slice(0, 20)) {
-      console.log(`- ${r.path} ← ${r.source}`);
+  if (report.summary.issue_count === 0) {
+    for (const f of report.findings.filter((x) => x.tag === 'deferred')) {
+      console.log(`deferred: ${f.text}`);
     }
-    if (report.missing_ui.length > 20) console.log(`- … ${report.missing_ui.length - 20} more`);
-    console.log('');
+    if (report.findings.some((x) => x.tag === 'deferred')) console.log('');
+    console.log(report.net);
+    return;
   }
 
-  if (report.missing_api.length) {
-    console.log('## Missing API coverage (add flow checks or tiers.smoke)');
-    for (const r of report.missing_api.slice(0, 20)) {
-      const method = r.method ? `${r.method} ` : '';
-      console.log(`- ${method}${r.path} ← ${r.source}`);
+  for (const f of report.findings) {
+    if (f.tag === 'deferred') {
+      console.log(`deferred: ${f.text}`);
+    } else {
+      console.log(`${f.tag}: ${f.text}`);
     }
-    if (report.missing_api.length > 20) console.log(`- … ${report.missing_api.length - 20} more`);
-    console.log('');
   }
+  console.log('');
+  console.log(report.net);
 
-  if (report.orphan_flows.length) {
-    console.log('## Orphan flows (in manifest but not discovered — verify or remove)');
-    for (const f of report.orphan_flows) {
-      console.log(`- ${f.id}: ${(f.path || []).join(', ')}`);
+  if (!report.summary.has_smoke_tier && report.summary.suggested_smoke?.length) {
+    console.log('');
+    console.log('suggested-smoke:');
+    for (const c of report.summary.suggested_smoke) {
+      console.log(`  - ${c}`);
     }
-    console.log('');
   }
-
-  if (!report.summary.has_smoke_tier && report.summary.suggested_smoke.length) {
-    console.log('## Suggested tiers.smoke');
-    for (const c of report.summary.suggested_smoke) console.log(`- ${c}`);
-    console.log('');
-  }
-
-  console.log('## Next steps');
-  console.log('- Run `node <skill-dir>/scripts/discover.mjs --draft` for full manifest snippets');
-  console.log('- Run agent `init` to merge suggestions into uat-manifest.yml');
-  console.log('- Re-run `node <skill-dir>/scripts/audit.mjs` after updating manifest');
 }
 
 function main() {
@@ -155,32 +226,23 @@ function main() {
     if (opts.json) {
       console.log(JSON.stringify({ error: 'NO_MANIFEST', discovery, draft }, null, 2));
     } else {
-      console.log('NO_MANIFEST — suggested starting flows from discovery:\n');
-      printPretty({
-        project_id: null,
-        summary: {
-          ui_discovered: discovery.uiRoutes.length,
-          api_discovered: discovery.apiRoutes.length,
-          flows_in_manifest: 0,
-          missing_ui: discovery.uiRoutes.length,
-          missing_api: discovery.apiRoutes.length,
-          orphan_flows: 0,
-          has_smoke_tier: false,
-          has_static_tier: false,
-          suggested_smoke: draft.tiers.smoke,
-        },
-        missing_ui: discovery.uiRoutes,
-        missing_api: discovery.apiRoutes,
-        orphan_flows: [],
-        suggestions: draft,
-      });
+      console.log('NO_MANIFEST — run init first.');
+      for (const r of discovery.uiRoutes) {
+        console.log(`missing-ui: ${r.path}  <- ${r.source}`);
+      }
+      for (const r of discovery.apiRoutes) {
+        const method = r.method ? `${r.method} ` : '';
+        console.log(`missing-api: ${method}${r.path}  <- ${r.source}`);
+      }
+      console.log('');
+      console.log(`net: ${discovery.uiRoutes.length} untested ui, ${discovery.apiRoutes.length} untested api.`);
     }
     process.exit(1);
   }
 
   const manifestDoc = loadManifestDoc(opts.manifest);
   manifestDoc.manifestPath = path.relative(opts.root, opts.manifest);
-  const report = auditCoverage(discovery, manifestDoc);
+  const report = buildFindings(discovery, manifestDoc);
 
   if (opts.json) {
     console.log(JSON.stringify(report, null, 2));

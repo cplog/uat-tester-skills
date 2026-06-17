@@ -37,7 +37,7 @@ const CONFIG_HINTS = [
   /tsconfig/,
 ];
 
-function gitSignals(cwd) {
+function gitSignals(cwd, baseOverride = null) {
   const run = (args, { trim = true } = {}) => {
     try {
       const out = execFileSync('git', args, {
@@ -56,15 +56,23 @@ function gitSignals(cwd) {
   }
 
   const branch = run(['rev-parse', '--abbrev-ref', 'HEAD']);
-  let base = null;
-  for (const b of ['main', 'master']) {
-    if (run(['rev-parse', '--verify', '--quiet', b]) !== null) {
-      base = b;
-      break;
+  let resolvedBase = baseOverride;
+  if (!resolvedBase) {
+    for (const b of ['main', 'master']) {
+      if (run(['rev-parse', '--verify', '--quiet', b]) !== null) {
+        resolvedBase = b;
+        break;
+      }
     }
+  } else if (run(['rev-parse', '--verify', '--quiet', resolvedBase]) === null) {
+    resolvedBase = null;
   }
 
-  const diffBase = base && branch && branch !== base ? base : null;
+  const diffBase = baseOverride
+    ? resolvedBase
+    : resolvedBase && branch && branch !== resolvedBase
+      ? resolvedBase
+      : null;
   const fromDiff = diffBase ? run(['diff', '--name-only', `${diffBase}...HEAD`]) : null;
   const fromStatus = run(['-c', 'core.quotepath=false', 'status', '--porcelain'], { trim: false });
 
@@ -298,9 +306,9 @@ export function buildRecommendations({ tiers, flows, extraServices, devServer, d
   return recs.slice(0, 5);
 }
 
-export async function gatherSignals(cwd = process.cwd()) {
+export async function gatherSignals(cwd = process.cwd(), options = {}) {
   const ctx = loadContext(cwd);
-  const git = gitSignals(cwd);
+  const git = gitSignals(cwd, options.base || null);
   const devServer = await devServerSignals();
   const doc = ctx.doc || { flows: [], tiers: {} };
 

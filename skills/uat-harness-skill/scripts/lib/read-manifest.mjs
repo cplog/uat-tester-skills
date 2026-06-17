@@ -42,10 +42,12 @@ function loadYaml(filePath) {
 
 /** Fallback when js-yaml is not installed — covers tier command lists only. */
 function parseMinimalYaml(text) {
-  const doc = { tiers: { extra_services: [] }, flows: [], destructive_commands: [], safety_notes: [] };
+  const doc = { tiers: { extra_services: [] }, flows: [], deferred_coverage: [], destructive_commands: [], safety_notes: [] };
   let section = null;
   let tierKey = null;
   let inFlows = false;
+  let inDeferred = false;
+  let currentDeferred = null;
   let currentFlow = null;
   let inExtraServices = false;
   let currentService = null;
@@ -70,17 +72,27 @@ function parseMinimalYaml(text) {
     if (line.trim() === 'flows:') {
       section = 'flows';
       inFlows = true;
+      inDeferred = false;
+      inExtraServices = false;
+      continue;
+    }
+    if (line.trim() === 'deferred_coverage:') {
+      section = 'deferred';
+      inFlows = false;
+      inDeferred = true;
       inExtraServices = false;
       continue;
     }
     if (line.trim() === 'destructive_commands:') {
       section = 'destructive';
       inFlows = false;
+      inDeferred = false;
       continue;
     }
     if (line.trim() === 'safety_notes:') {
       section = 'safety';
       inFlows = false;
+      inDeferred = false;
       continue;
     }
 
@@ -154,6 +166,29 @@ function parseMinimalYaml(text) {
       const criticalMatch = line.match(/^    critical:\s*(true|false)/);
       if (criticalMatch && currentFlow) {
         currentFlow.critical = criticalMatch[1] === 'true';
+      }
+    }
+
+    if (inDeferred) {
+      const defId = line.match(/^  - id:\s*(.+)/);
+      if (defId) {
+        currentDeferred = { id: defId[1].trim(), path: null, reason: null, revisit: null };
+        doc.deferred_coverage.push(currentDeferred);
+        continue;
+      }
+      const defPath = line.match(/^    path:\s*(.+)/);
+      if (defPath && currentDeferred) {
+        currentDeferred.path = defPath[1].trim();
+        continue;
+      }
+      const defReason = line.match(/^    reason:\s*(.+)/);
+      if (defReason && currentDeferred) {
+        currentDeferred.reason = defReason[1].trim();
+        continue;
+      }
+      const defRevisit = line.match(/^    revisit:\s*(.+)/);
+      if (defRevisit && currentDeferred) {
+        currentDeferred.revisit = defRevisit[1].trim();
       }
     }
   }
@@ -278,6 +313,7 @@ function main() {
           flows: doc.flows || [],
           tiers: doc.tiers || {},
           linked_repos: doc.linked_repos || [],
+          deferred_coverage: doc.deferred_coverage || [],
         },
         null,
         2

@@ -52,6 +52,13 @@ linked_repos: []
 #    path: ../backend-api
 #    base_url: http://127.0.0.1:8000
 
+# Intentionally untested paths — audit reports as deferred:, not missing-
+deferred_coverage: []
+#  - id: api-health
+#    path: /api/health
+#    reason: covered by tiers.smoke only
+#    revisit: when adding API flow checks
+
 destructive_commands:
   - npm run db:reset
 

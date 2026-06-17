@@ -30,6 +30,7 @@ Each project owns a root-level **`uat-manifest.yml`**. The generic skill never h
 | `locale` | Default locale, toggle, viewport bounds |
 | `preflight.health_path` | HTTP path to probe (default `/`) — e.g. `/api/health` |
 | `linked_repos[]` | Sibling repos for discovery/audit (`id`, `path`, optional `base_url`) |
+| `deferred_coverage[]` | Intentionally untested paths (`id`, `path`, `reason`, `revisit`) — audit ignores these |
 
 ## Live app (Tier B & C)
 

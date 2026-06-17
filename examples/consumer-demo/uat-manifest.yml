@@ -45,6 +45,12 @@ flows:
       - settings form renders
       - save button visible
 
+deferred_coverage:
+  - id: api-health
+    path: /api/health
+    reason: covered by tiers.smoke only
+    revisit: when adding API flow checks
+
 alert_routes: {}
 
 destructive_commands: []
