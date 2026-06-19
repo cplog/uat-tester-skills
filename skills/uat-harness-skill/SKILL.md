@@ -86,6 +86,7 @@ node <skill-dir>/scripts/discover.mjs [--pretty|--json|--draft]
 node <skill-dir>/scripts/review.mjs [--pretty|--json] [--base ref]
 node <skill-dir>/scripts/audit.mjs [--pretty|--json]
 node <skill-dir>/scripts/codegen.mjs [--force]
+node <skill-dir>/scripts/report.mjs [--pretty|--json] [--gh-export]
 npm run uat:preflight   # if wired in package.json
 ```
 
@@ -173,6 +174,7 @@ If you prefer interview-style flow mapping, use **`init`** instead of `setup`.
     "uat:tier-b": "bash .agents/skills/uat-harness-skill/scripts/tier-b.sh",
     "uat:tier-c": "bash .agents/skills/uat-harness-skill/scripts/tier-c.sh",
     "uat:tier-d": "bash .agents/skills/uat-harness-skill/scripts/tier-d.sh",
+    "uat:report": "node .agents/skills/uat-harness-skill/scripts/report.mjs --pretty",
     "uat:browser": "bash .agents/skills/uat-harness-skill/scripts/browser.sh"
   }
 }

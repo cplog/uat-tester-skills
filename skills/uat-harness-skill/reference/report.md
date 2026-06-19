@@ -1,40 +1,82 @@
-# Report — UAT summary
+# Report — generated UAT bug reports
 
-After any tier session, write this report. Pull `project_id` from manifest via `context.mjs`.
+The `report` command turns Tier C failure evidence into developer-ready bug reports.
 
-## Template
+## When to use
 
-```markdown
-# UAT Report — [date] — [project_id] — [scope]
+- After `uat:tier-c` has produced `.uat/evidence/` bundles.
+- To aggregate multiple failures into one Markdown + JSON report.
+- To export findings to GitHub Issues.
 
-## Environment
-- Manifest: [path]
-- URL: [base_url or UAT_URL]
-- DB: read-only | write (user approved)
+## Run
 
-## Tiers completed
-- [ ] A (static)  [ ] B (smoke)  [ ] C (flows)  [ ] D (worker)
-- [ ] D — extra service: [service-id] (same tier as D, via `--service`)
+```bash
+# Aggregate all evidence into .uat/reports/
+npm run uat:report
 
-## Commands run
-- (exact commands from manifest tiers)
+# JSON only
+npm run uat:report -- --format json
 
-## Flows checked
-- (flow ids from Tier C)
+# Filter by severity
+npm run uat:report -- --severity medium
 
-## Evidence
-- Screenshots, API responses, job/run IDs
-
-## Failures (root cause, not workaround)
-- Expected vs actual → likely cause → fix or follow-up
-
-## Follow-ups
-- PRs, config, manifest updates, doc updates
+# Export to GitHub Issues (requires gh CLI authenticated)
+npm run uat:report -- --gh-export --gh-repo owner/repo
 ```
 
-## Rules
+## Evidence directory
 
-- Failures must cite root cause.
-- Do not claim pass without command output or checklist evidence.
-- Suggest manifest updates when a new flow or script is missing.
-- **Extra services** are not a separate tier — record them under Tier D with the service id.
+Each failed check produces a bundle at:
+
+```
+.uat/evidence/<timestamp>-<flow-id>-<check-slug>/
+  screenshot.png
+  dom.html
+  console-logs.json
+  network-errors.json
+  browser-state.json
+  metadata.json
+  diagnosis.json   # cached diagnosis output
+```
+
+## Report output
+
+Reports are written to `.uat/reports/`:
+
+- `uat-bug-report-<project>-<timestamp>.md` — human-readable summary + per-bug details
+- `uat-bug-report-<project>-<timestamp>.json` — machine-readable structured report
+
+A bug report includes:
+
+- Bug title and severity
+- Root-cause hypothesis
+- Reproduction steps
+- Suggested fixes
+- Screenshot and evidence links
+- Branch, commit, app URL, and manifest context
+
+## Configuration
+
+Control reporting behavior in `uat-manifest.yml`:
+
+```yaml
+reporting:
+  enabled: true
+  evidence_dir: .uat/evidence
+  report_dir: .uat/reports
+  severity_threshold: low
+  auto_capture: true
+  auto_diagnose: true
+  gh_export:
+    enabled: false
+    repo: owner/repo
+    labels: [bug, uat]
+    assignees: []
+```
+
+## Notes
+
+- `.uat/` may contain screenshots and state snapshots. Add it to `.gitignore`.
+- Diagnosis requires `ANTHROPIC_API_KEY` for AI-powered analysis; otherwise a heuristic fallback is used.
+- GitHub export requires the `gh` CLI and write access to the target repo.
+- Use `--no-capture` with `uat:tier-c` to skip evidence collection for a quick run.

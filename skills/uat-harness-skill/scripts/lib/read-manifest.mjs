@@ -40,9 +40,25 @@ function loadYaml(filePath) {
   return parseMinimalYaml(text);
 }
 
+/** Convert simple reporting config values to booleans/numbers/arrays/strings. */
+function parseReportingValue(value) {
+  const trimmed = value.trim();
+  if (trimmed === 'true') return true;
+  if (trimmed === 'false') return false;
+  if (/^\d+$/.test(trimmed)) return Number(trimmed);
+  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    return trimmed
+      .slice(1, -1)
+      .split(',')
+      .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
+      .filter(Boolean);
+  }
+  return trimmed.replace(/^['"]|['"]$/g, '');
+}
+
 /** Fallback when js-yaml is not installed — covers tier command lists only. */
 function parseMinimalYaml(text) {
-  const doc = { tiers: { extra_services: [] }, flows: [], deferred_coverage: [], destructive_commands: [], safety_notes: [] };
+  const doc = { tiers: { extra_services: [] }, flows: [], deferred_coverage: [], destructive_commands: [], safety_notes: [], reporting: {} };
   let section = null;
   let tierKey = null;
   let inFlows = false;
@@ -52,6 +68,8 @@ function parseMinimalYaml(text) {
   let inExtraServices = false;
   let currentService = null;
   let inServiceCommands = false;
+  let inReporting = false;
+  let inGhExport = false;
 
   for (const raw of text.split('\n')) {
     const line = raw.replace(/\s*#.*$/, '');
@@ -91,6 +109,13 @@ function parseMinimalYaml(text) {
     }
     if (line.trim() === 'safety_notes:') {
       section = 'safety';
+      inFlows = false;
+      inDeferred = false;
+      continue;
+    }
+    if (line.trim() === 'reporting:') {
+      section = 'reporting';
+      inReporting = true;
       inFlows = false;
       inDeferred = false;
       continue;
@@ -140,6 +165,33 @@ function parseMinimalYaml(text) {
     if (section === 'safety') {
       const m = line.match(/^  - (.+)$/);
       if (m) doc.safety_notes.push(m[1].trim());
+    }
+
+    if (inReporting) {
+      if (line.trim() === 'gh_export:') {
+        inGhExport = true;
+        doc.reporting.gh_export = {};
+        continue;
+      }
+      const topMatch = line.match(/^  (\w+):\s*(.+)$/);
+      if (topMatch && !inGhExport) {
+        const key = topMatch[1];
+        const value = topMatch[2].trim();
+        doc.reporting[key] = parseReportingValue(value);
+        continue;
+      }
+      const ghMatch = line.match(/^    (\w+):\s*(.+)$/);
+      if (ghMatch && inGhExport) {
+        const key = ghMatch[1];
+        const value = ghMatch[2].trim();
+        doc.reporting.gh_export[key] = parseReportingValue(value);
+        continue;
+      }
+      // Any top-level key without indentation exits reporting section
+      if (!line.startsWith(' ')) {
+        inReporting = false;
+        inGhExport = false;
+      }
     }
 
     if (inFlows) {
@@ -342,6 +394,11 @@ function main() {
 
   if (command === 'extra_service_ids') {
     for (const svc of doc.tiers?.extra_services || []) console.log(svc.id);
+    return;
+  }
+
+  if (command === 'reporting') {
+    console.log(JSON.stringify(doc.reporting || {}, null, 2));
     return;
   }
 

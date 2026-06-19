@@ -69,6 +69,19 @@ deferred_coverage: []
 #    reason: covered by tiers.smoke only
 #    revisit: when adding API flow checks
 
+reporting:
+  enabled: true
+  evidence_dir: .uat/evidence
+  report_dir: .uat/reports
+  severity_threshold: low
+  auto_capture: true
+  auto_diagnose: true
+  gh_export:
+    enabled: false
+    repo: ''
+    labels: [bug, uat]
+    assignees: []
+
 destructive_commands:
   - npm run db:reset
 

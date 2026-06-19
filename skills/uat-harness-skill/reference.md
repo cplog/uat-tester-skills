@@ -32,6 +32,7 @@ Each project owns a root-level **`uat-manifest.yml`**. The generic skill never h
 | `preflight.health_path` | HTTP path to probe (default `/`) — e.g. `/api/health` |
 | `linked_repos[]` | Sibling repos for discovery/audit (`id`, `path`, optional `base_url`) |
 | `deferred_coverage[]` | Intentionally untested paths (`id`, `path`, `reason`, `revisit`) — audit ignores these |
+| `reporting` | Bug reporter configuration (optional) |
 
 ## Live app (Tier B & C)
 
@@ -94,6 +95,38 @@ tiers:
       commands:
         - npm run analytics:smoke
 ```
+
+## reporting (bug reporter)
+
+Optional block controlling how failed Tier C checks are captured, diagnosed, and exported.
+
+```yaml
+reporting:
+  enabled: true
+  evidence_dir: .uat/evidence
+  report_dir: .uat/reports
+  severity_threshold: low
+  auto_capture: true
+  auto_diagnose: true
+  gh_export:
+    enabled: false
+    repo: owner/repo
+    labels: [bug, uat]
+    assignees: []
+```
+
+| Field | Purpose |
+|-------|---------|
+| `enabled` | Master switch for automatic evidence capture |
+| `evidence_dir` | Where screenshot + DOM + logs bundles are stored |
+| `report_dir` | Where generated Markdown/JSON reports are stored |
+| `severity_threshold` | Minimum severity included in reports (`info`, `low`, `medium`, `high`, `critical`) |
+| `auto_capture` | Capture evidence automatically on Tier C failure |
+| `auto_diagnose` | Run AI diagnosis on captured evidence |
+| `gh_export.enabled` | Export reports to GitHub Issues |
+| `gh_export.repo` | Target repo (`owner/name`) |
+| `gh_export.labels` | Labels applied to created issues |
+| `gh_export.assignees` | Auto-assignees for created issues |
 
 ## New project setup
 

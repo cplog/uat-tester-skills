@@ -201,6 +201,19 @@ function renderManifestYaml(doc) {
   lines.push('');
   lines.push('deferred_coverage: []');
   lines.push('');
+  lines.push('reporting:');
+  lines.push('  enabled: true');
+  lines.push('  evidence_dir: .uat/evidence');
+  lines.push('  report_dir: .uat/reports');
+  lines.push('  severity_threshold: low');
+  lines.push('  auto_capture: true');
+  lines.push('  auto_diagnose: true');
+  lines.push('  gh_export:');
+  lines.push('    enabled: false');
+  lines.push('    repo: \'\'');
+  lines.push('    labels: [bug, uat]');
+  lines.push('    assignees: []');
+  lines.push('');
   lines.push('alert_routes: {}');
   lines.push('');
   lines.push('destructive_commands: []');
@@ -295,6 +308,7 @@ function wirePackageScripts(root, opts) {
     'uat:review': 'node .agents/skills/uat-harness-skill/scripts/review.mjs --pretty',
     'uat:audit': 'node .agents/skills/uat-harness-skill/scripts/audit.mjs --pretty',
     'uat:codegen': 'node .agents/skills/uat-harness-skill/scripts/codegen.mjs --force',
+    'uat:report': 'node .agents/skills/uat-harness-skill/scripts/report.mjs --pretty',
     'uat:tier-a': 'bash .agents/skills/uat-harness-skill/scripts/tier-a.sh',
     'uat:tier-b': 'bash .agents/skills/uat-harness-skill/scripts/tier-b.sh',
     'uat:tier-c': 'bash .agents/skills/uat-harness-skill/scripts/tier-c.sh',

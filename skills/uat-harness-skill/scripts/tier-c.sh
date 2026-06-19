@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tier C — operator flows. Usage: tier-c.sh [--flows a,b] [--critical] [--url https://…] [--manual]
+# Tier C — operator flows. Usage: tier-c.sh [--flows a,b] [--critical] [--url https://…] [--manual] [--no-capture] [--no-diagnose]
 set -euo pipefail
 
 source "$(dirname "$0")/lib/resolve-paths.sh"
@@ -15,6 +15,8 @@ while [[ $# -gt 0 ]]; do
     --critical) ARGS+=(--critical); shift ;;
     --url) UAT_URL="$2"; shift 2 ;;
     --manual) FORCE_MANUAL=1; shift ;;
+    --no-capture) ARGS+=(--no-capture); shift ;;
+    --no-diagnose) ARGS+=(--no-diagnose); shift ;;
     *) echo "Unknown arg: $1"; exit 1 ;;
   esac
 done

@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { captureFailure, createSessionTracker } from './failure-capture.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -26,6 +27,8 @@ function resolvePlaywright() {
     process.cwd(),
     path.resolve(__dirname, '../../../../..'),
     path.resolve(__dirname, '../../../../../cli'),
+    path.resolve(__dirname, '../../../../'),
+    path.resolve(__dirname, '../../../../cli'),
   ];
   for (const root of roots) {
     for (const pkg of ['playwright-core', 'playwright']) {
@@ -65,7 +68,8 @@ async function ping() {
 async function main() {
   const [cmd, arg] = process.argv.slice(2);
   if (!cmd || cmd === 'help' || cmd === '--help') {
-    console.log(`Usage: browser-control.mjs <ping|navigate|click|text|screenshot|url> [arg]`);
+    console.log(`Usage: browser-control.mjs <ping|navigate|click|text|screenshot|url|capture> [arg]`);
+    console.log(`  capture <out-dir>   Capture a full failure evidence bundle (screenshot, DOM, logs, state)`);
     process.exit(0);
   }
 
@@ -102,6 +106,24 @@ async function main() {
       case 'url':
         console.log(JSON.stringify({ ok: true, url: page.url() }));
         break;
+      case 'capture': {
+        if (!arg) throw new Error('capture requires an output directory');
+        const tracker = createSessionTracker(page);
+        const bundle = await tracker.capture({
+          dir: path.resolve(arg),
+          flowId: process.env.UAT_FLOW_ID,
+          flowName: process.env.UAT_FLOW_NAME,
+          checkIndex: Number(process.env.UAT_CHECK_INDEX || 0),
+          checkDescription: process.env.UAT_CHECK_DESCRIPTION,
+          projectId: process.env.UAT_PROJECT_ID,
+          appUrl: process.env.UAT_APP_URL,
+          manifestPath: process.env.UAT_MANIFEST_PATH,
+          tier: process.env.UAT_TIER || 'C',
+          flowCritical: process.env.UAT_FLOW_CRITICAL === 'true',
+        });
+        console.log(JSON.stringify({ ok: true, bundle }));
+        break;
+      }
       default:
         console.error(`Unknown command: ${cmd}`);
         process.exit(1);

@@ -11,12 +11,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_DIR = path.resolve(__dirname, '..');
 
 function parseArgs(argv) {
-  const out = { url: '', manifest: '', flows: null, critical: false };
+  const out = { url: '', manifest: '', flows: null, critical: false, capture: true, diagnose: true };
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === '--url' && argv[i + 1]) out.url = argv[++i];
     else if (argv[i] === '--manifest' && argv[i + 1]) out.manifest = argv[++i];
     else if (argv[i] === '--flows' && argv[i + 1]) out.flows = argv[++i];
     else if (argv[i] === '--critical') out.critical = true;
+    else if (argv[i] === '--no-capture') out.capture = false;
+    else if (argv[i] === '--no-diagnose') out.diagnose = false;
   }
   return out;
 }
@@ -72,6 +74,27 @@ function main() {
   console.log('');
   console.log('For each flow below: navigate to the path under the base URL, verify every check,');
   console.log('report PASS or FAIL with evidence. On FAIL, capture a screenshot before moving on.');
+  if (opts.capture) {
+    console.log('');
+    console.log('## Evidence capture (enabled by default)');
+    console.log('');
+    console.log('On FAIL for any check:');
+    console.log(`  1. Choose an evidence directory, e.g. /tmp/uat-evidence-\${flow.id}-\${check.index}`);
+    console.log(`  2. Set env vars and capture:`);
+    console.log(`       UAT_PROJECT_ID="${payload.project_id || ''}" \\`);
+    console.log(`       UAT_FLOW_ID="<flow.id>" \\`);
+    console.log(`       UAT_FLOW_NAME="<flow.name>" \\`);
+    console.log(`       UAT_FLOW_CRITICAL="<true|false>" \\`);
+    console.log(`       UAT_CHECK_INDEX="<check.index>" \\`);
+    console.log(`       UAT_CHECK_DESCRIPTION="<check.text>" \\`);
+    console.log(`       UAT_APP_URL="${opts.url}" \\`);
+    console.log(`       UAT_MANIFEST_PATH="${opts.manifest}" \\`);
+    console.log(`       node ${browserCtl} capture <evidence-dir>`);
+    if (opts.diagnose) {
+      console.log(`  3. Run diagnosis:`);
+      console.log(`       node ${path.join(SKILL_DIR, 'scripts', 'lib', 'diagnose-failure.mjs')} <evidence-dir>`);
+    }
+  }
   console.log('');
   for (const flow of payload.flows) {
     const route = (flow.path && flow.path[0]) || '/';
